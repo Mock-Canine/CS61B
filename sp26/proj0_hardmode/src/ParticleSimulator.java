@@ -53,7 +53,8 @@ class ParticleSimulator {
     void tick() {
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                particles[i][j].fall(getNeighbors(i, j));
+                particles[i][j].action(getNeighbors(i, j));
+                particles[i][j].decrementLifespan();
             }
         }
     }
@@ -67,7 +68,6 @@ class ParticleSimulator {
         }
 
         StringBuilder sb = new StringBuilder();
-
         // Have to iterate from the top so that
         // the top particles are shown first.
         for (int y = height - 1; y >= 0; y -= 1) {
@@ -101,6 +101,7 @@ class ParticleSimulator {
                 }
             }
 
+            particleSimulator.tick();
             particleSimulator.drawParticles();
             StdDraw.show();
             StdDraw.pause(5);
