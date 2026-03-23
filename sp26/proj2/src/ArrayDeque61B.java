@@ -2,11 +2,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ArrayDeque61B<T> implements Deque61B<T> {
-    private int SIZE = 8;
-    private final int FIRSTTAG = 0;
-    private final int LASTTAG = 1;
+    private int ARRLEN = 8;
     private final int RFACTOR = 2;
     private final double USERATIO = 0.25;
+    private final int LENBOUNDARY = 16;
 
     // Class is a state machine, and its state is contained in these
     // four boxes, so tests should verify the content of the boxes
@@ -17,22 +16,29 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
 
     public ArrayDeque61B() {
         size = 0;
-        nextFirst = FIRSTTAG;
-        nextLast = LASTTAG;
-        items = (T[]) new Object[SIZE];
+        // FirstTag is the last element, lastTag is the [size] th element
+        nextFirst = ARRLEN - 1;
+        nextLast = size;
+        items = (T[]) new Object[ARRLEN];
     }
 
     @Override
     public void addFirst(T x) {
+        if (size() == ARRLEN) {
+            resize(RFACTOR * ARRLEN);
+        }
         items[nextFirst] = x;
-        nextFirst = (nextFirst - 1 + SIZE) % SIZE;
+        nextFirst = (nextFirst - 1 + ARRLEN) % ARRLEN;
         size++;
     }
 
     @Override
     public void addLast(T x) {
+        if (size() == ARRLEN) {
+            resize(RFACTOR * ARRLEN);
+        }
         items[nextLast] = x;
-        nextLast = (nextLast + 1) % SIZE;
+        nextLast = (nextLast + 1) % ARRLEN;
         size++;
     }
 
@@ -58,12 +64,12 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
 
     @Override
     public T getFirst() {
-        return items[(nextFirst + 1) % SIZE];
+        return items[(nextFirst + 1) % ARRLEN];
     }
 
     @Override
     public T getLast() {
-        return items[(nextLast - 1 + SIZE) % SIZE];
+        return items[(nextLast - 1 + ARRLEN) % ARRLEN];
     }
 
     @Override
@@ -71,8 +77,12 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         if (size() == 0) {
             return null;
         }
+        boolean enoughElement = size() > (int) (USERATIO * ARRLEN);
+        if (ARRLEN >= LENBOUNDARY && !enoughElement) {
+            resize((int) (ARRLEN / RFACTOR));
+        }
         T first = getFirst();
-        nextFirst = (nextFirst + 1) % SIZE;
+        nextFirst = (nextFirst + 1) % ARRLEN;
         items[nextFirst] = null;
         size--;
         return first;
@@ -83,8 +93,12 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         if (size() == 0) {
             return null;
         }
+        boolean enoughElement = size() > (int) (USERATIO * ARRLEN);
+        if (ARRLEN >= LENBOUNDARY && !enoughElement) {
+            resize((int) (ARRLEN / RFACTOR));
+        }
         T last = getLast();
-        nextLast = (nextLast - 1 + SIZE) % SIZE;
+        nextLast = (nextLast - 1 + ARRLEN) % ARRLEN;
         items[nextLast] = null;
         size--;
         return last;
@@ -95,7 +109,7 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         if (size == 0 || index < 0 || index >= size) {
             return null;
         }
-        return items[(nextFirst + 1 + index) % SIZE];
+        return items[(nextFirst + 1 + index) % ARRLEN];
     }
 
     @Override
@@ -103,9 +117,15 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         throw new UnsupportedOperationException("No need to implement getRecursive for ArrayDeque61B.");
     }
 
-    public void resize(int capacity) {
+    private void resize(int capacity) {
         T[] newArr = (T[]) new Object[capacity];
-
+        for (int i = 0; i < size(); i++) {
+            newArr[i] = get(i);
+        }
+        nextLast = size();
+        nextFirst = capacity - 1;
+        ARRLEN = capacity;
+        items = newArr;
     }
 
 //    static void main() {

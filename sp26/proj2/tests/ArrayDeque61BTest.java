@@ -257,4 +257,30 @@ public class ArrayDeque61BTest {
         L1.addFirst(20);
         assertThat(L1.toList()).containsExactly(20, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
+
+    @Test
+    public void resizeDownTest() {
+        Deque61B<Integer> L = new ArrayDeque61B<>();
+        // Verify triggered by removeFirst
+        int count = 8;
+        for (int i = 0; i < count; i++) {
+            L.addFirst(i);
+        } // 7-0, len 16
+        for (int i = 0; i < count / 2; i++) {
+            L.removeFirst();
+        } // 3-0, len16
+        L.removeFirst(); // 2-0, len8
+        assertThat(L.toList()).containsExactly( 2, 1, 0);
+
+        Deque61B<Integer> L1 = new ArrayDeque61B<>();
+        // Verify triggered by removeLast
+        for (int i = 0; i < count; i++) {
+            L1.addFirst(i);
+        } // 7-0, len 16
+        for (int i = 0; i < count / 2; i++) {
+            L1.removeLast();
+        } // 7-4, len 16
+        L1.removeLast(); // 7-5, len8
+        assertThat(L1.toList()).containsExactly(7, 6, 5);
+    }
 }
