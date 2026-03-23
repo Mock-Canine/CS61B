@@ -104,6 +104,7 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
     }
 
     public void resize(int capacity) {
+        T[] newArr = (T[]) new Object[capacity];
 
     }
 

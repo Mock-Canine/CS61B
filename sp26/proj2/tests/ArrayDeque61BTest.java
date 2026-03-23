@@ -1,7 +1,4 @@
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -240,5 +237,24 @@ public class ArrayDeque61BTest {
         L.addLast(4);
         assertThat(L.removeLast()).isEqualTo(4);
         assertThat(L.toList()).isEmpty();
+    }
+
+    @Test
+    public void resizeUpTest() {
+        Deque61B<Integer> L = new ArrayDeque61B<>();
+        Deque61B<Integer> L1 = new ArrayDeque61B<>();
+        // Verify triggered by addFirst
+        int count = 10;
+        for (int i = 0; i <= count; i++) {
+            L.addFirst(i);
+        }
+        L.addLast(20);
+        assertThat(L.toList()).containsExactly(10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 20);
+        // Verify triggered by addLast
+        for (int i = 0; i <= count; i++) {
+            L1.addLast(i);
+        }
+        L1.addFirst(20);
+        assertThat(L1.toList()).containsExactly(20, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 }
