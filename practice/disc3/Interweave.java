@@ -4,6 +4,7 @@ public class Interweave {
     public static IntList[] interweave(IntList lst, int k) {
         IntList[] array = new IntList[k];
         int index = k - 1;
+        // IntList is much easier to addFirst then addLast, so reverse is needed
         IntList L = reverse(lst);
         while (L != null) {
             IntList prevAtIndex = array[index];
@@ -18,6 +19,7 @@ public class Interweave {
         }
         return array;
     }
+    // Because IntList is a naked data structure with recursive attribute, i can do this recursively
     private static IntList reverseHelp(IntList lst, IntList newRest) {
         // Corner case
         if (lst == null) {
