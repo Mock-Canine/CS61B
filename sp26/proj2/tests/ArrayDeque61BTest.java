@@ -120,6 +120,29 @@ public class ArrayDeque61BTest {
     }
 
     @Test
+    public void getTestCircular() {
+        // get from empty, get idx out of boundary, normal
+        // For firstTag = 3, lastTag = 4
+        Deque61B<Integer> L = new ArrayDeque61B<>();
+
+        L.addFirst(3);
+        L.addFirst(1);
+        L.addFirst(5);
+        L.addFirst(7);
+        L.addFirst(8); // at the end of the array
+        assertThat(L.get(0)).isEqualTo(8);
+
+        Deque61B<Integer> LL = new ArrayDeque61B<>();
+
+        LL.addLast(3);
+        LL.addLast(1);
+        LL.addLast(5);
+        LL.addLast(7);
+        LL.addLast(8); // at the front of the array
+        assertThat(LL.get(4)).isEqualTo(8);
+    }
+
+    @Test
     public void isEmptyTest() {
         // empty, not empty
         Deque61B<Integer> L = new ArrayDeque61B<>();
@@ -172,6 +195,17 @@ public class ArrayDeque61BTest {
         LL.addLast(5);
         LL.addFirst(7); // [7, 3, 5]
         assertThat(LL.toList()).containsExactly(7, 3, 5).inOrder();
+    }
+
+    @Test
+    public void toListTestCircular() {
+        Deque61B<Integer> L = new ArrayDeque61B<>();
+        L.addFirst(3);
+        L.addFirst(4);
+        L.addFirst(5);
+        L.addFirst(6);
+        L.addFirst(7);
+        assertThat(L.toList()).containsExactly(7, 6, 5, 4, 3).inOrder();
     }
 
     @Test
