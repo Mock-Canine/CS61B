@@ -81,8 +81,8 @@ public class ArrayDeque61BTest {
         assertThat(L.getFirst()).isEqualTo(null);
         L.addFirst(4);
         assertThat(L.getFirst()).isEqualTo(4);
-        L1.addLast(4);
-        assertThat(L1.getFirst()).isEqualTo(4);
+        L1.addLast(5);
+        assertThat(L1.getFirst()).isEqualTo(5);
     }
 
     @Test
@@ -93,8 +93,8 @@ public class ArrayDeque61BTest {
         assertThat(L.getLast()).isEqualTo(null);
         L.addFirst(4);
         assertThat(L.getLast()).isEqualTo(4);
-        L1.addLast(4);
-        assertThat(L1.getLast()).isEqualTo(4);
+        L1.addLast(3);
+        assertThat(L1.getLast()).isEqualTo(3);
     }
 
     @Test
@@ -120,6 +120,8 @@ public class ArrayDeque61BTest {
     public void getTestCircular() {
         // get from empty, get idx out of boundary, normal
         // For firstTag = 3, lastTag = 4
+        // Just a test for circular array implementation, the
+        // concrete position of the tag is not a big deal
         Deque61B<Integer> L = new ArrayDeque61B<>();
 
         L.addFirst(3);
@@ -174,6 +176,33 @@ public class ArrayDeque61BTest {
     }
 
     @Test
+    public void removeAndSizeTest() {
+        Deque61B<Integer> L = new ArrayDeque61B<>();
+        Deque61B<Integer> LL = new ArrayDeque61B<>();
+        assertThat(L.size()).isEqualTo(0);
+
+        // remove to empty then check size work
+        L.addFirst(3);
+        L.addLast(5);
+        L.addFirst(7); // [7, 3, 5]
+        L.removeLast();
+        L.removeLast();
+        L.removeFirst();
+        assertThat(L.size()).isEqualTo(0);
+        assertThat(L.toList()).isEmpty();
+        L.addFirst(3);
+        L.addLast(5);
+        assertThat(L.size()).isEqualTo(2);
+
+        // remove from empty and check size work
+        LL.removeFirst();
+        assertThat(LL.size()).isEqualTo(0);
+        LL.addLast(8);
+        LL.addFirst(9);
+        assertThat(LL.size()).isEqualTo(2);
+    }
+
+    @Test
     public void toListTest() {
         // empty, not empty(grow)
         Deque61B<Integer> L = new ArrayDeque61B<>();
@@ -220,6 +249,16 @@ public class ArrayDeque61BTest {
         L.addLast(4);
         assertThat(L.removeFirst()).isEqualTo(4);
         assertThat(L.toList()).isEmpty();
+
+        // remove first to one
+        L.addFirst(4);
+        L.addFirst(5);
+        L.addLast(6);
+        L.addLast(7); // [5, 4, 6, 7]
+        assertThat(L.removeFirst()).isEqualTo(5);
+        assertThat(L.removeFirst()).isEqualTo(4);
+        assertThat(L.removeFirst()).isEqualTo(6); // remove second to last element
+        assertThat(L.toList()).containsExactly(7).inOrder();
     }
 
     @Test
@@ -237,6 +276,16 @@ public class ArrayDeque61BTest {
         L.addLast(4);
         assertThat(L.removeLast()).isEqualTo(4);
         assertThat(L.toList()).isEmpty();
+
+        // remove last to one
+        L.addFirst(4);
+        L.addFirst(5);
+        L.addLast(6);
+        L.addLast(7); // [5, 4, 6, 7]
+        assertThat(L.removeLast()).isEqualTo(7);
+        assertThat(L.removeLast()).isEqualTo(6);
+        assertThat(L.removeLast()).isEqualTo(4); // remove second to last element
+        assertThat(L.toList()).containsExactly(5).inOrder();
     }
 
     @Test
@@ -259,7 +308,8 @@ public class ArrayDeque61BTest {
     }
 
     @Test
-    public void resizeDownTest() {
+    public void resizeUpAndDownTest() {
+        // Has been resize up and down
         Deque61B<Integer> L = new ArrayDeque61B<>();
         // Verify triggered by removeFirst
         int count = 8;
