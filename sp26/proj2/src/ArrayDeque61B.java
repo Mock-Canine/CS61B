@@ -8,9 +8,13 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         public ArrayDequeIterator() {
             idx = 0;
         }
+
+        @Override
         public boolean hasNext() {
             return idx < size;
         }
+
+        @Override
         public T next() {
             if(!hasNext()) {
                 return null;
@@ -39,6 +43,7 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         items = (T[]) new Object[ARLEN];
     }
 
+    @Override
     public Iterator<T> iterator() {
         return new ArrayDequeIterator();
     }
