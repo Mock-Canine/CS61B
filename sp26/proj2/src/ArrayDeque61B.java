@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.StringJoiner;
 
 public class ArrayDeque61B<T> implements Deque61B<T> {
     private class ArrayDequeIterator implements Iterator<T> {
@@ -70,6 +71,17 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
             }
         }
         return false;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder("[");
+        for (T item : this) {
+            str.append(item);
+            str.append(", ");
+        }
+        str.append("]");
+        return str.toString();
     }
 
     @Override

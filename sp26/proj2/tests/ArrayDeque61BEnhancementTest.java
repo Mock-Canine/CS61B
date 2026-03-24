@@ -72,5 +72,15 @@ public class ArrayDeque61BEnhancementTest {
         assertThat(L.equals(compare)).isTrue();
     }
 
-
+    @Test
+    public void toStringTest() {
+        Deque61B<Integer> L = new ArrayDeque61B<>();
+        IO.println(L); // []
+        L.addFirst(3);
+        L.addLast(4);
+        IO.println(L); // [3, 4, ]
+        L.removeLast();
+        L.removeLast();
+        IO.println(L); // []
+    }
 }
