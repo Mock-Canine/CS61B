@@ -31,6 +31,20 @@ public class ArrayDeque61BEnhancementTest {
 
     @Test
     public void enhancedLoopTest() {
-
+        Deque61B<String> L = new ArrayDeque61B<>();
+        List<String> myList = new ArrayList<>();
+        // Test empty
+        for (String str : L) {
+            myList.add(str);
+        }
+        assertThat(myList).isEmpty();
+        // Test non
+        L.addFirst("jack");
+        L.addFirst("moya");
+        L.addFirst("senta");
+        for (String str : L) {
+            myList.add(str);
+        }
+        assertThat(myList).containsExactly("senta", "moya", "jack").inOrder();
     }
 }
