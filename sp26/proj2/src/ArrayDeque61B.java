@@ -1,7 +1,6 @@
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.StringJoiner;
 
 public class ArrayDeque61B<T> implements Deque61B<T> {
     private class ArrayDequeIterator implements Iterator<T> {
@@ -17,7 +16,7 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
 
         @Override
         public T next() {
-            if(!hasNext()) {
+            if (!hasNext()) {
                 return null;
             }
             return get(idx++);
@@ -49,39 +48,35 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         return new ArrayDequeIterator();
     }
 
-    private boolean contains(T item) {
-        for (T i : this) {
-            if (i.equals(item)){
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof ArrayDeque61B other) {
-            if (this.size == other.size) {
-                for (T item : this) {
-                    if (!other.contains(item)) {
-                        return false;
-                    }
-                }
-                return true;
+        if (obj == this) {
+            return true;
+        }
+        // Note, it only uses the interface methods, so
+        // it can check if the ArrayDeque equals to LinkedListDeque
+        if (obj instanceof Deque61B<?> other) {
+            if (this.size != other.size()) {
+                return false;
             }
+            for (int i = 0; i < size; i++) {
+                // Unlike set
+                if (!this.get(i).equals(other.get(i))) {
+                    return false;
+                }
+            }
+            return true;
         }
         return false;
     }
 
     @Override
     public String toString() {
-        StringBuilder str = new StringBuilder("[");
+        List<String> listOfItems = new ArrayList<>();
         for (T item : this) {
-            str.append(item);
-            str.append(", ");
+            listOfItems.add(item.toString());
         }
-        str.append("]");
-        return str.toString();
+        return "[" + String.join(", ", listOfItems) + "]";
     }
 
     @Override

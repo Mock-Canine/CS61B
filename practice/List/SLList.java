@@ -4,6 +4,7 @@ import edu.princeton.cs.algs4.In;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 // A wrapper to IntNode that can contain metadata like size,
@@ -91,5 +92,10 @@ public class SLList {
         L.addFirst(12);
         IO.println(L.getFirst());
         IO.println(L.size());
+        List<Integer> LA = new ArrayList<>();
+        List<Integer> LL = new LinkedList<>();
+        LA.addFirst(5);
+        LL.addFirst(5);
+        boolean jack = LA.equals(LL);
     }
 }

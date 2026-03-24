@@ -73,6 +73,19 @@ public class ArrayDeque61BEnhancementTest {
     }
 
     @Test
+    public void equalTestEnhanced() {
+        Deque61B<String> L = new ArrayDeque61B<>();
+        Deque61B<String> compare = new ArrayDeque61B<>();
+        String jack = "jack";
+        String mary = "mary";
+        L.addFirst(jack);
+        L.addFirst(mary);
+        compare.addFirst(mary);
+        compare.addFirst(jack);
+        assertThat(L.equals(compare)).isFalse();
+    }
+
+    @Test
     public void toStringTest() {
         Deque61B<Integer> L = new ArrayDeque61B<>();
         IO.println(L); // []
