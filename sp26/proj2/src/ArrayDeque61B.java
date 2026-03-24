@@ -48,6 +48,30 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         return new ArrayDequeIterator();
     }
 
+    private boolean contains(T item) {
+        for (T i : this) {
+            if (i.equals(item)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof ArrayDeque61B other) {
+            if (this.size == other.size) {
+                for (T item : this) {
+                    if (!other.contains(item)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public void addFirst(T x) {
         if (size == ARLEN) {
@@ -153,5 +177,4 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         ARLEN = capacity;
         items = newArr;
     }
-
 }

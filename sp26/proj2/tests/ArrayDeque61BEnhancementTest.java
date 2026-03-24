@@ -46,5 +46,31 @@ public class ArrayDeque61BEnhancementTest {
             myList.add(str);
         }
         assertThat(myList).containsExactly("senta", "moya", "jack").inOrder();
+        assertThat(L).containsExactly("senta", "moya", "jack").inOrder();
     }
+
+    @Test
+    public void equalTest() {
+        Deque61B<Integer> L = new ArrayDeque61B<>();
+        Deque61B<Integer> compare = new ArrayDeque61B<>();
+
+        // empty
+        assertThat(L.equals(compare)).isTrue();
+        // non-empty
+        // different size
+        L.addFirst(3);
+        L.addFirst(4); // [4, 3]
+        compare.addLast(3); // [3]
+        assertThat(L.equals(compare)).isFalse();
+        // same size, different elements
+        compare.addLast(5); // [3, 5]
+        assertThat(L.equals(compare)).isFalse();
+        // the same
+        compare.removeLast();
+        compare.addFirst(4); // [4, 3]
+        assertThat(compare).containsExactly(4, 3).inOrder();
+        assertThat(L.equals(compare)).isTrue();
+    }
+
+
 }
