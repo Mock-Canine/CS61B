@@ -92,10 +92,15 @@ public class SLList {
         L.addFirst(12);
         IO.println(L.getFirst());
         IO.println(L.size());
-        List<Integer> LA = new ArrayList<>();
-        List<Integer> LL = new LinkedList<>();
-        LA.addFirst(5);
-        LL.addFirst(5);
-        boolean jack = LA.equals(LL);
+
+        List<Integer> arrL = new ArrayList<>();
+        arrL.add(4);
+        arrL.add(5);
+        arrL.set(0, null);
+        for (Integer x : arrL) {
+            if (x == null) {
+                IO.println("goddog");
+            }
+        }
     }
 }
