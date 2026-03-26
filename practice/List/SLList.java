@@ -97,6 +97,7 @@ public class SLList {
         arrL.add(4);
         arrL.add(5);
         arrL.set(0, null);
+        arrL.add(null);
         for (Integer x : arrL) {
             if (x == null) {
                 IO.println("goddog");

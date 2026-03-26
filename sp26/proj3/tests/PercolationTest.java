@@ -79,28 +79,37 @@ public class PercolationTest {
     }
 
     @Test
-    public void isOpenTestBasic() {
+    public void fullTest() {
         int N = 5;
         Percolation p = new Percolation(N);
-        // open sites at (r, c) = (0, 1), (2, 0), (3, 1), etc. (0, 0) is top-left
+        // Direct test: full block(top line block) created first then turns an open block full;
+        // open block created first then being turned by a full block
+        // Indirect test: full block(non-top line) turns other non-top open blocks full
         int[][] openSites = {
-                {0, 1},
-                {2, 0},
-                {3, 1},
-                {4, 1},
+                {0, 0},
                 {1, 0},
-                {1, 1}
+                {1, 2},
+                {0, 2},
+                {2, 1},
+                {2, 3},
+                {2, 4},
+                {3, 2},
+                {4, 2},
+                {2, 2},
+                {3, 0},
+                {4, 0},
         };
         Cell[][] expectedState = {
-                {Cell.CLOSED, Cell.OPEN, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED},
-                {Cell.OPEN, Cell.OPEN, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED},
-                {Cell.OPEN, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED},
-                {Cell.CLOSED, Cell.OPEN, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED},
-                {Cell.CLOSED, Cell.OPEN, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED}
+                {Cell.FULL, Cell.CLOSED, Cell.FULL, Cell.CLOSED, Cell.CLOSED},
+                {Cell.FULL, Cell.CLOSED, Cell.FULL, Cell.CLOSED, Cell.CLOSED},
+                {Cell.CLOSED, Cell.FULL, Cell.FULL, Cell.FULL, Cell.FULL},
+                {Cell.OPEN, Cell.CLOSED, Cell.FULL, Cell.CLOSED, Cell.CLOSED},
+                {Cell.OPEN, Cell.CLOSED, Cell.FULL, Cell.CLOSED, Cell.CLOSED}
         };
         for (int[] site : openSites) {
             p.open(site[0], site[1]);
         }
         assertThat(getState(N, p)).isEqualTo(expectedState);
+        assertThat(p.percolates()).isFalse();
     }
 }
