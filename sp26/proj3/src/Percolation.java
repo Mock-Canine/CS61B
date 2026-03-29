@@ -22,13 +22,10 @@ public class Percolation {
     // Only simulate the open elements, not the blocked ones
     private final WeightedQuickUnionUF sites;
     // openState[row][col] is valid for each (row, col)
-    // fullState[row][col] is only valid for elements that are the root in the union
-    // and for non-root elements, the result is garbage
     // Special elements: top and bottom line
-    private final boolean[][] openState, fullState;
+    private final boolean[][] openState;
     // The number of elements in the matrix being opened
     private int openNum;
-    private boolean isPercolate;
     private final int size;
 
     /**
@@ -40,10 +37,12 @@ public class Percolation {
             throw new IllegalArgumentException("input size should be positive");
         }
         sites = new WeightedQuickUnionUF(N * N);
+        // Chain top line
+        for (int i = 1; i < N; i++) {
+            sites.union(0, i);
+        }
         openState = new boolean[N][N];
-        fullState = new boolean[N][N];
         openNum = 0;
-        isPercolate = false;
         size = N;
     }
 
@@ -60,25 +59,10 @@ public class Percolation {
         openState[row][col] = true;
         openNum++;
         // Simulate percolate process
-        // Find the root of its opened neighbors, if any one or me is full, change
-        // all the roots(possible root for the whole set) to full, and connect me
-        // with the roots
+        // Find its opened neighbors, connect together
         List<int[]> neighbors = findNeighbors(row, col);
-        List<int[]> roots = new ArrayList<>();
-        // Full state of me
-        boolean isFull = row == 0;
         for (int[] n : neighbors) {
-            int[] root = findRoot(n[0], n[1]);
-            roots.add(root);
-            isFull = isFull || fullState[root[0]][root[1]];
-        }
-        fullState[row][col] = isFull;
-        for (int[] root : roots) {
-            int rowR = root[0];
-            int colR = root[1];
-            fullState[rowR][colR] = isFull;
-            // Mutate the state of sites
-            union(row, col, rowR, colR);
+            union(row, col, n[0], n[1]);
         }
     }
 
@@ -106,13 +90,12 @@ public class Percolation {
         if (row == 0) {
             return true;
         }
-        int[] root = findRoot(row, col);
-        return fullState[root[0]][root[1]];
+        return isConnected(row, col, 0, 0);
     }
 
     public int numberOfOpenSites() {
         // sites.count(): block + openSites
-        return openNum + sites.count() - size * size;
+        return openNum + sites.count() - size * size + size - 1;
     }
 
     public boolean percolates() {
@@ -199,6 +182,21 @@ public class Percolation {
     private int[] findRoot(int row, int col) {
         int idx = matrix2Array(row, col);
         return array2Matrix(sites.find(idx));
+    }
+
+    /**
+     * Check if two elements is connected in the QuickUnion,
+     * the elements should be in the percolation matrix and opened
+     * @param pX row of p
+     * @param pY column of p
+     * @param qX row of q
+     * @param qY column of q
+     * @return is connected or not
+     */
+    private boolean isConnected(int pX, int pY, int qX, int qY) {
+        int idxP = matrix2Array(pX, pY);
+        int idxQ = matrix2Array(qX, qY);
+        return sites.connected(idxP, idxQ);
     }
 
     /**
