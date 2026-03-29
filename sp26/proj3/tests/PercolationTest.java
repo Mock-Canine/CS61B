@@ -122,7 +122,7 @@ public class PercolationTest {
         };
         Cell[][] expectedState = {
                 {Cell.CLOSED, Cell.CLOSED, Cell.FULL, Cell.CLOSED},
-                {Cell.FULL, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED},
+                {Cell.CLOSED, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED},
                 {Cell.CLOSED, Cell.CLOSED, Cell.OPEN, Cell.CLOSED},
                 {Cell.OPEN, Cell.CLOSED, Cell.OPEN, Cell.CLOSED},
         };

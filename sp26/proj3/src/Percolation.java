@@ -21,7 +21,11 @@ import java.util.List;
 public class Percolation {
     // Only simulate the open elements, not the blocked ones
     private final WeightedQuickUnionUF sites;
+    // openState[row][col] is valid for each (row, col)
+    // fullState[row][col] is only valid for elements that are the root in the union
+    // and for non-root elements, the result is garbage
     private final boolean[][] openState, fullState;
+    private int openNum;
     private final int size;
 
     /**
@@ -32,9 +36,10 @@ public class Percolation {
         if (N <= 0) {
             throw new IllegalArgumentException("input size should be positive");
         }
-        sites = new WeightedQuickUnionUF(N);
+        sites = new WeightedQuickUnionUF(N * N);
         openState = new boolean[N][N];
         fullState = new boolean[N][N];
+        openNum = 0;
         size = N;
     }
 
@@ -44,30 +49,31 @@ public class Percolation {
      * @param col column of the element
      */
     public void open(int row, int col) {
-/*        outOfBound(row, col);
+        // TODO: modify the findRoot algorithm for top line element, no need to find their root
+        outOfBound(row, col);
         openState[row][col] = true;
-        // Separate into unionNeighbors() latter
-        List<int[]> targets = new ArrayList<>();
-        targets.add(new int[]{row, col});
-
-        int idx = matrix2Array(row, col);
-        boolean isFull = isFull(row, col);
-        List<Integer> roots = neighborsRoot(row, col);
-        for (Integer root : roots) {
-            if (root != null) {
-                int[] rootXY = array2Matrix(root);
-                targets.add(rootXY);
-                if (isFull(rootXY[0], rootXY[1])) {
-                    isFull = true;
-                }
-                sites.union(idx, root);
-            }
+        openNum++;
+        // Simulate percolate process
+        // Find the root of its opened neighbors, if any one or me is full, change
+        // all the roots(possible root for the whole set) to full, and connect me
+        // with the roots
+        List<int[]> neighbors = findNeighbors(row, col);
+        List<int[]> roots = new ArrayList<>();
+        // Full state of me
+        boolean isFull = row == 0;
+        for (int[] n : neighbors) {
+            int[] root = findRoot(n[0], n[1]);
+            roots.add(root);
+            isFull = isFull || fullState[root[0]][root[1]];
         }
-        if (isFull) {
-            for (int[] target : targets) {
-                fullState[target[0]][target[1]] = true;
-            }
-        }*/
+        fullState[row][col] = isFull;
+        for (int[] root : roots) {
+            int rowR = root[0];
+            int colR = root[1];
+            fullState[rowR][colR] = isFull;
+            // Mutate the state of sites
+            union(row, col, rowR, colR);
+        }
     }
 
     /**
@@ -77,9 +83,8 @@ public class Percolation {
      * @return if the element has been opened
      */
     public boolean isOpen(int row, int col) {
-//        outOfBound(row, col);
-//        return openState[row][col];
-        return false;
+        outOfBound(row, col);
+        return openState[row][col];
     }
 
     /**
@@ -89,24 +94,27 @@ public class Percolation {
      * @return if the element is full
      */
     public boolean isFull(int row, int col) {
-/*        if (!isOpen(row, col)) {
+        if (!isOpen(row, col)) {
             return false;
         }
-        int root = findRoot(row, col);
-        int[] rootXY = array2Matrix(root);
-        return row == 0 || fullState[rootXY[0]][rootXY[1]];
-//        return bornFull(row) || isRootFull(row, col);
-        // Optimize latter*/
-        return false;
+        int[] root = findRoot(row, col);
+        return fullState[root[0]][root[1]];
+        // TODO: Optimize later for opened top line elements
     }
 
     public int numberOfOpenSites() {
-        // TODO: Fill in this method.
-        return 0;
+        // sites.count(): block + openSites
+        int i = sites.count();
+        return openNum + sites.count() - size * size;
     }
 
     public boolean percolates() {
-        // TODO: Fill in this method.
+        // TODO: Modify this implementation
+        for (int i = 0; i < size; i++) {
+            if (fullState[size - 1][i]) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -114,14 +122,16 @@ public class Percolation {
      * Check if the index is out of the boundary of percolation matrix
      * @param row row of the element
      * @param col column of the element
-     * @return true if index out of bound
      */
-    private boolean outOfBound(int row, int col) {
-//        if (row < 0 || row >= size || col < 0 || col >= size) {
-//            throw new IndexOutOfBoundsException(String.format("(%s, %s) is out of bound size: %s",
-//                      row, col, this.size));
-//        }
-        return false;
+    private void outOfBound(int row, int col) {
+        if (outOfBoundCon(row, col)) {
+            throw new IndexOutOfBoundsException(String.format("(%s, %s) is out of bound size: %s",
+                      row, col, this.size));
+        }
+    }
+
+    private boolean outOfBoundCon(int row, int col) {
+        return row < 0 || row >= size || col < 0 || col >= size;
     }
 
     /**
@@ -150,15 +160,26 @@ public class Percolation {
      * @param row row of the element
      * @param col column of the element
      * @return a list containing the (row, col) binary array of opened neighbors,
-     *         null if not found
      */
-    private List<int[]> neighborsRoot(int row, int col) {
+    private List<int[]> findNeighbors(int row, int col) {
         List<int[]> result = new ArrayList<>();
-//        result.add(isOpenHelper(row - 1, col) ? findRoot(row - 1, col) : null);
-//        result.add(isOpenHelper(row + 1, col) ? findRoot(row + 1, col) : null);
-//        result.add(isOpenHelper(row, col - 1) ? findRoot(row, col - 1) : null);
-//        result.add(isOpenHelper(row, col + 1) ? findRoot(row, col + 1) : null);
+        appendOpenNode(row - 1, col, result);
+        appendOpenNode(row + 1, col, result);
+        appendOpenNode(row, col - 1, result);
+        appendOpenNode(row, col + 1, result);
         return result;
+    }
+
+    /**
+     * Append (row, col) to input list if it is open
+     * no change if out of bound or block
+     * @param row row of the element
+     * @param col column of the element
+     */
+    private void appendOpenNode(int row, int col, List<int[]> dst) {
+        if (!outOfBoundCon(row, col) && openState[row][col]) {
+            dst.add(new int[]{row, col});
+        }
     }
 
     /**
@@ -166,10 +187,24 @@ public class Percolation {
      * the element should be in the percolation matrix and opened
      * @param row row of the element
      * @param col column of the element
-     * @return index of the root in the QuickUnion
+     * @return binary array containing position of the root in the matrix
      */
-    private int findRoot(int row, int col) {
+    private int[] findRoot(int row, int col) {
         int idx = matrix2Array(row, col);
-        return sites.find(idx);
+        return array2Matrix(sites.find(idx));
+    }
+
+    /**
+     * Connect two elements in the QuickUnion,
+     * the elements should be in the percolation matrix and opened
+     * @param pX row of p
+     * @param pY column of p
+     * @param qX row of q
+     * @param qY column of q
+     */
+    private void union(int pX, int pY, int qX, int qY) {
+        int idxP = matrix2Array(pX, pY);
+        int idxQ = matrix2Array(qX, qY);
+        sites.union(idxP, idxQ);
     }
 }
