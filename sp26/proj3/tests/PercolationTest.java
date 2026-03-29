@@ -38,6 +38,33 @@ public class PercolationTest {
         return state;
     }
 
+    @Test
+    public void basicTest() {
+        int N = 5;
+        Percolation p = new Percolation(N);
+        // open sites at (r, c) = (0, 1), (2, 0), (3, 1), etc. (0, 0) is top-left
+        int[][] openSites = {
+                {0, 1},
+                {2, 0},
+                {3, 1},
+                {4, 1},
+                {1, 0},
+                {1, 1}
+        };
+        Cell[][] expectedState = {
+                {Cell.CLOSED, Cell.FULL, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED},
+                {Cell.FULL, Cell.FULL, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED},
+                {Cell.FULL, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED},
+                {Cell.CLOSED, Cell.OPEN, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED},
+                {Cell.CLOSED, Cell.OPEN, Cell.CLOSED, Cell.CLOSED, Cell.CLOSED}
+        };
+        for (int[] site : openSites) {
+            p.open(site[0], site[1]);
+        }
+        assertThat(getState(N, p)).isEqualTo(expectedState);
+        assertThat(p.percolates()).isFalse();
+    }
+
     /*
      * Testing strategy for each operation of Percolation:
      *

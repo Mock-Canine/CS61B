@@ -51,6 +51,9 @@ public class Percolation {
     public void open(int row, int col) {
         // TODO: modify the findRoot algorithm for top line element, no need to find their root
         outOfBound(row, col);
+        if (openState[row][col]) {
+            return;
+        }
         openState[row][col] = true;
         openNum++;
         // Simulate percolate process
@@ -111,7 +114,7 @@ public class Percolation {
     public boolean percolates() {
         // TODO: Modify this implementation
         for (int i = 0; i < size; i++) {
-            if (fullState[size - 1][i]) {
+            if (isFull(size - 1, i)) {
                 return true;
             }
         }
