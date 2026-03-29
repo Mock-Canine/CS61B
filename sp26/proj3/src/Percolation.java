@@ -19,11 +19,15 @@ import java.util.List;
  *        not percolate: vice visa
  */
 public class Percolation {
-    // Only simulate the open nodes, not the block ones
+    // Only simulate the open elements, not the blocked ones
     private final WeightedQuickUnionUF sites;
     private final boolean[][] openState, fullState;
     private final int size;
 
+    /**
+     * Initialize percolation matrix
+     * @param N dimension of the matrix
+     */
     public Percolation(int N) {
         if (N <= 0) {
             throw new IllegalArgumentException("input size should be positive");
@@ -36,8 +40,8 @@ public class Percolation {
 
     /**
      * Open the element at (row, col) in the percolation matrix
-     * @param row row
-     * @param col
+     * @param row row of the element
+     * @param col column of the element
      */
     public void open(int row, int col) {
 /*        outOfBound(row, col);
@@ -117,6 +121,7 @@ public class Percolation {
 //            throw new IndexOutOfBoundsException(String.format("(%s, %s) is out of bound size: %s",
 //                      row, col, this.size));
 //        }
+        return false;
     }
 
     /**
@@ -148,12 +153,12 @@ public class Percolation {
      *         null if not found
      */
     private List<int[]> neighborsRoot(int row, int col) {
-//        List<Integer> result = new ArrayList<>();
+        List<int[]> result = new ArrayList<>();
 //        result.add(isOpenHelper(row - 1, col) ? findRoot(row - 1, col) : null);
 //        result.add(isOpenHelper(row + 1, col) ? findRoot(row + 1, col) : null);
 //        result.add(isOpenHelper(row, col - 1) ? findRoot(row, col - 1) : null);
 //        result.add(isOpenHelper(row, col + 1) ? findRoot(row, col + 1) : null);
-//        return result;
+        return result;
     }
 
     /**
