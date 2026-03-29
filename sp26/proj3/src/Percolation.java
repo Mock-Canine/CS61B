@@ -24,8 +24,11 @@ public class Percolation {
     // openState[row][col] is valid for each (row, col)
     // fullState[row][col] is only valid for elements that are the root in the union
     // and for non-root elements, the result is garbage
+    // Special elements: top and bottom line
     private final boolean[][] openState, fullState;
+    // The number of elements in the matrix being opened
     private int openNum;
+    private boolean isPercolate;
     private final int size;
 
     /**
@@ -40,6 +43,7 @@ public class Percolation {
         openState = new boolean[N][N];
         fullState = new boolean[N][N];
         openNum = 0;
+        isPercolate = false;
         size = N;
     }
 
@@ -49,7 +53,6 @@ public class Percolation {
      * @param col column of the element
      */
     public void open(int row, int col) {
-        // TODO: modify the findRoot algorithm for top line element, no need to find their root
         outOfBound(row, col);
         if (openState[row][col]) {
             return;
@@ -100,14 +103,15 @@ public class Percolation {
         if (!isOpen(row, col)) {
             return false;
         }
+        if (row == 0) {
+            return true;
+        }
         int[] root = findRoot(row, col);
         return fullState[root[0]][root[1]];
-        // TODO: Optimize later for opened top line elements
     }
 
     public int numberOfOpenSites() {
         // sites.count(): block + openSites
-        int i = sites.count();
         return openNum + sites.count() - size * size;
     }
 
