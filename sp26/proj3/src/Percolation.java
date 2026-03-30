@@ -41,6 +41,11 @@ public class Percolation {
         for (int i = 1; i < N; i++) {
             sites.union(0, i);
         }
+        // Chain bottom line
+        int offset = N * (N - 1);
+        for (int i = 1; i < N; i++) {
+            sites.union(offset, offset + i);
+        }
         openState = new boolean[N][N];
         openNum = 0;
         size = N;
@@ -95,17 +100,13 @@ public class Percolation {
 
     public int numberOfOpenSites() {
         // sites.count(): block + openSites
-        return openNum + sites.count() - size * size + size - 1;
+        // size - 1 is the offset because the top and bottom line is chained so
+        // sites.count() will become smaller
+        return openNum + sites.count() - size * size + 2 * (size - 1);
     }
 
     public boolean percolates() {
-        // TODO: Modify this implementation
-        for (int i = 0; i < size; i++) {
-            if (isFull(size - 1, i)) {
-                return true;
-            }
-        }
-        return false;
+        return isConnected(size - 1, 0, 0, 0);
     }
 
     /**
