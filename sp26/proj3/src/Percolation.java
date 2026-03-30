@@ -39,20 +39,11 @@ public class Percolation {
         if (N <= 0) {
             throw new IllegalArgumentException("input size should be positive");
         }
-        doubleChainSites = new WeightedQuickUnionUF(N * N);
-        topChainSites = new WeightedQuickUnionUF(N * N);
-        // Chain top line
-        for (int i = 1; i < N; i++) {
-            doubleChainSites.union(0, i);
-            topChainSites.union(0, i);
-        }
-        // Chain bottom line
-        int offset = N * (N - 1);
-        for (int i = 1; i < N; i++) {
-            doubleChainSites.union(offset, offset + i);
-        }
-        topNode = new int[]{0, 0};
-        bottomNode = new int[]{N - 1, 0};
+        doubleChainSites = new WeightedQuickUnionUF(N * N + 2);
+        topChainSites = new WeightedQuickUnionUF(N * N + 1);
+        // Pretend to be in the matrix
+        topNode = new int[]{N - 1, N};
+        bottomNode = new int[]{N - 1, N + 1};
         openState = new boolean[N][N];
         openNum = 0;
         size = N;
@@ -70,11 +61,15 @@ public class Percolation {
         }
         openState[row][col] = true;
         openNum++;
+        // Virtual nodes should only be chained when a node is opened,
+        // not when the system initialize
+        chainVirtual(row, col);
         // Simulate percolate process
         // Find its opened neighbors, connect together
         List<int[]> neighbors = findNeighbors(row, col);
         for (int[] n : neighbors) {
-            union(row, col, n[0], n[1]);
+            union(row, col, n[0], n[1], doubleChainSites);
+            union(row, col, n[0], n[1], topChainSites);
         }
     }
 
@@ -169,6 +164,22 @@ public class Percolation {
     }
 
     /**
+     * Chain element to virtual node if it is in the top or bottom line
+     * the element should be in the percolation matrix and opened
+     * @param row row of the element
+     * @param col column of the element
+     */
+    private void chainVirtual(int row, int col) {
+        if (row == 0) {
+            union(row, col, topNode[0], topNode[1], doubleChainSites);
+            union(row, col, topNode[0], topNode[1], topChainSites);
+        }
+        if (row == size - 1) {
+            union(row, col, bottomNode[0], bottomNode[1], doubleChainSites);
+        }
+    }
+
+    /**
      * Check if two elements is connected in the QuickUnion,
      * the elements should be in the percolation matrix and opened
      * @param pX row of p
@@ -191,11 +202,11 @@ public class Percolation {
      * @param pY column of p
      * @param qX row of q
      * @param qY column of q
+     * @param uf which QuickUnion to connect
      */
-    private void union(int pX, int pY, int qX, int qY) {
+    private void union(int pX, int pY, int qX, int qY, WeightedQuickUnionUF uf) {
         int idxP = matrix2Array(pX, pY);
         int idxQ = matrix2Array(qX, qY);
-        doubleChainSites.union(idxP, idxQ);
-        topChainSites.union(idxP, idxQ);
+        uf.union(idxP, idxQ);
     }
 }

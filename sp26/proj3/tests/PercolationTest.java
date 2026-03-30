@@ -111,6 +111,18 @@ public class PercolationTest {
     }
 
     @Test
+    public void size1NoPercolateTest() {
+        int N = 1;
+        Percolation p = new Percolation(N);
+        Cell[][] expectedState = {
+                {Cell.CLOSED}
+        };
+        assertThat(getState(N, p)).isEqualTo(expectedState);
+        assertThat(p.percolates()).isFalse();
+        assertThat(p.numberOfOpenSites()).isEqualTo(0);
+    }
+
+    @Test
     public void size2Test() {
         int N = 2;
         Percolation p = new Percolation(N);
