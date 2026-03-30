@@ -20,8 +20,11 @@ import java.util.List;
  */
 public class Percolation {
     // Only simulate the open elements, not the blocked ones
-    private final WeightedQuickUnionUF sites;
-    // openState[row][col] is valid for each (row, col)
+    // doubleChainSites used for percolate(), topChainSites used for isFull()
+    private final WeightedQuickUnionUF doubleChainSites;
+    private final WeightedQuickUnionUF topChainSites;
+    private final int[] topNode;
+    private final int[] bottomNode;
     // Special elements: top and bottom line
     private final boolean[][] openState;
     // The number of elements in the matrix being opened
@@ -36,16 +39,20 @@ public class Percolation {
         if (N <= 0) {
             throw new IllegalArgumentException("input size should be positive");
         }
-        sites = new WeightedQuickUnionUF(N * N);
+        doubleChainSites = new WeightedQuickUnionUF(N * N);
+        topChainSites = new WeightedQuickUnionUF(N * N);
         // Chain top line
         for (int i = 1; i < N; i++) {
-            sites.union(0, i);
+            doubleChainSites.union(0, i);
+            topChainSites.union(0, i);
         }
         // Chain bottom line
         int offset = N * (N - 1);
         for (int i = 1; i < N; i++) {
-            sites.union(offset, offset + i);
+            doubleChainSites.union(offset, offset + i);
         }
+        topNode = new int[]{0, 0};
+        bottomNode = new int[]{N - 1, 0};
         openState = new boolean[N][N];
         openNum = 0;
         size = N;
@@ -95,18 +102,18 @@ public class Percolation {
         if (row == 0) {
             return true;
         }
-        return isConnected(row, col, 0, 0);
+        return isConnected(row, col, topNode[0], topNode[1], topChainSites);
     }
 
     public int numberOfOpenSites() {
         // sites.count(): block + openSites
-        // size - 1 is the offset because the top and bottom line is chained so
+        // size - 1 is the offset because the top line is chained so
         // sites.count() will become smaller
-        return openNum + sites.count() - size * size + 2 * (size - 1);
+        return openNum + topChainSites.count() - size * size + (size - 1);
     }
 
     public boolean percolates() {
-        return isConnected(size - 1, 0, 0, 0);
+        return isConnected(bottomNode[0], bottomNode[1], topNode[0], topNode[1], doubleChainSites);
     }
 
     /**
@@ -134,15 +141,6 @@ public class Percolation {
      */
     private int matrix2Array(int row, int col) {
         return row * size + col;
-    }
-
-    /**
-     * Map the element in the QuickUnion to its position in the percolation matrix
-     * @param idx valid index in the QuickUnion
-     * @return (row, col) binary array of the element
-     */
-    private int[] array2Matrix(int idx) {
-        return new int[]{idx / size, idx % size};
     }
 
     /**
@@ -174,30 +172,19 @@ public class Percolation {
     }
 
     /**
-     * Find the root of an element in the QuickUnion,
-     * the element should be in the percolation matrix and opened
-     * @param row row of the element
-     * @param col column of the element
-     * @return binary array containing position of the root in the matrix
-     */
-    private int[] findRoot(int row, int col) {
-        int idx = matrix2Array(row, col);
-        return array2Matrix(sites.find(idx));
-    }
-
-    /**
      * Check if two elements is connected in the QuickUnion,
      * the elements should be in the percolation matrix and opened
      * @param pX row of p
      * @param pY column of p
      * @param qX row of q
      * @param qY column of q
+     * @param uf which QuickUnion to find
      * @return is connected or not
      */
-    private boolean isConnected(int pX, int pY, int qX, int qY) {
+    private boolean isConnected(int pX, int pY, int qX, int qY, WeightedQuickUnionUF uf) {
         int idxP = matrix2Array(pX, pY);
         int idxQ = matrix2Array(qX, qY);
-        return sites.connected(idxP, idxQ);
+        return uf.connected(idxP, idxQ);
     }
 
     /**
@@ -211,6 +198,7 @@ public class Percolation {
     private void union(int pX, int pY, int qX, int qY) {
         int idxP = matrix2Array(pX, pY);
         int idxQ = matrix2Array(qX, qY);
-        sites.union(idxP, idxQ);
+        doubleChainSites.union(idxP, idxQ);
+        topChainSites.union(idxP, idxQ);
     }
 }
