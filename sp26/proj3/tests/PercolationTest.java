@@ -62,6 +62,7 @@ public class PercolationTest {
             p.open(site[0], site[1]);
         }
         assertThat(getState(N, p)).isEqualTo(expectedState);
+        assertThat(p.numberOfOpenSites()).isEqualTo(6);
         assertThat(p.percolates()).isFalse();
     }
 
@@ -126,7 +127,7 @@ public class PercolationTest {
         }
         assertThat(getState(N, p)).isEqualTo(expectedState);
         assertThat(p.percolates()).isTrue();
-        assertThat(p.numberOfOpenSites()).isEqualTo(1);
+        assertThat(p.numberOfOpenSites()).isEqualTo(2);
     }
 
     /**
@@ -158,7 +159,7 @@ public class PercolationTest {
         }
         assertThat(getState(N, p)).isEqualTo(expectedState);
         assertThat(p.percolates()).isFalse();
-        assertThat(p.numberOfOpenSites()).isEqualTo(3);
+        assertThat(p.numberOfOpenSites()).isEqualTo(4);
     }
 
     @Test
@@ -210,7 +211,7 @@ public class PercolationTest {
         };
         assertThat(getState(N, p)).isEqualTo(expectedState);
         assertThat(p.percolates()).isTrue();
-        assertThat(p.numberOfOpenSites()).isEqualTo(3);
+        assertThat(p.numberOfOpenSites()).isEqualTo(12);
     }
 
     /**
@@ -243,6 +244,6 @@ public class PercolationTest {
         };
         assertThat(getState(N, p)).isEqualTo(expectedState);
         assertThat(p.percolates()).isTrue();
-        assertThat(p.numberOfOpenSites()).isEqualTo(1);
+        assertThat(p.numberOfOpenSites()).isEqualTo(6);
     }
 }

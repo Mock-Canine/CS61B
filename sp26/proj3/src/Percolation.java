@@ -106,10 +106,7 @@ public class Percolation {
     }
 
     public int numberOfOpenSites() {
-        // sites.count(): block + openSites
-        // size - 1 is the offset because the top line is chained so
-        // sites.count() will become smaller
-        return openNum + topChainSites.count() - size * size + (size - 1);
+        return openNum;
     }
 
     public boolean percolates() {
