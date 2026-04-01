@@ -159,74 +159,51 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
      */
     @Override
     public V remove(K key) {
-        if (root == null) {
-            return null;
-        }
-        V value;
-        if (root.key.equals(key)) {
-            value = root.value;
-            if (root.left == null || root.right == null) {
-                root = root.left == null ? root.right : root.left;
-            } else {
-                BSTNode subTreeMax = removeMax(root.left, root);
-                root.key = subTreeMax.key;
-                root.value = subTreeMax.value;
-            }
-        } else if (root.key.compareTo(key) > 0) {
-            value = removeHelper(key, root.left, root);
-        } else {
-            value = removeHelper(key, root.right, root);
-        }
-        if (value != null) {
+        BSTNode removed = new BSTNode(null, null);
+        this.root = removeHelper(key, this.root, removed);
+        if (removed.value != null) {
             this.size--;
         }
-        return value;
+        return removed.value;
     }
 
     /**
-     * Remove the (key, value) pair from the subtree of a node,
-     * sub can be null, node can not be null
+     * Remove the (key, value) pair of node, constructively, return itself
+     * Mutate the value in the input removed node if found
      */
-    private V removeHelper(K key, BSTNode sub, BSTNode node) {
-        if (sub == null) {
+    private BSTNode removeHelper(K key, BSTNode node, BSTNode removed) {
+        if (node == null) {
             return null;
         }
-        if (sub.key.equals(key)) {
-            V value = sub.value;
-            boolean isLeft = node.key.compareTo(sub.key) > 0;
-            if (sub.left == null || sub.right == null) {
-                BSTNode orphan = sub.left == null ? sub.right : sub.left;
-                if (isLeft) {
-                    node.left = orphan;
-                } else {
-                    node.right = orphan;
-                }
+        if (node.key.equals(key)) {
+            removed.value = node.value;
+            if (node.left == null || node.right == null) {
+                 return node.left == null ? node.right : node.left;
             } else {
-                BSTNode subTreeMax = removeMax(sub.left, sub);
-                sub.key = subTreeMax.key;
-                sub.value = subTreeMax.value;
+                BSTNode subMax = new BSTNode(null, null);
+                node.left = removeMax(node.left, subMax);
+                node.key = subMax.key;
+                node.value = subMax.value;
             }
-            return value;
-        } else if (sub.key.compareTo(key) > 0){
-            return removeHelper(key, sub.left, sub);
+        } else if (node.key.compareTo(key) > 0){
+            node.left = removeHelper(key, node.left, removed);
         } else {
-            return removeHelper(key, sub.right, sub);
+            node.right = removeHelper(key, node.right, removed);
         }
+        return node;
     }
 
     /**
-     * Remove the max element from the subtree of a node,
-     * sub can be null, node can not be null
+     * Remove the largest item in the node, and put its (key, value) in removed
      */
-    private BSTNode removeMax(BSTNode sub, BSTNode node) {
-        if (sub == null) {
-            return null;
+    private BSTNode removeMax(BSTNode node, BSTNode removed) {
+        if (node.right == null) {
+            removed.key = node.key;
+            removed.value = node.value;
+            return node.left;
         }
-        if (sub.right == null) {
-            node.left = sub.left;
-            return sub;
-        }
-        return removeMax(sub.left, sub);
+        node.right = removeMax(node.right, removed);
+        return node;
     }
 
     @Override
