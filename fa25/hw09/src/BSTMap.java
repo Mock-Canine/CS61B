@@ -1,5 +1,7 @@
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
 
@@ -12,6 +14,23 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
         BSTNode(K k, V v) {
             key = k;
             value = v;
+        }
+    }
+
+    private class BSTIterator implements Iterator<K>{
+        private final Iterator<K> keySetIterator;
+        public BSTIterator() {
+            this.keySetIterator = keySet().iterator();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return keySetIterator.hasNext();
+        }
+
+        @Override
+        public K next() {
+            return keySetIterator.next();
         }
     }
 
@@ -53,7 +72,20 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
      */
     @Override
     public V get(K key) {
-        return null;
+        return getHelper(key, this.root);
+    }
+
+    private V getHelper(K key, BSTNode node) {
+        if (node == null) {
+            return null;
+        }
+        if (node.key.equals(key)) {
+            return node.value;
+        } else if (node.key.compareTo(key) > 0){
+            return getHelper(key, node.left);
+        } else {
+            return getHelper(key, node.right);
+        }
     }
 
     /**
@@ -63,7 +95,20 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
      */
     @Override
     public boolean containsKey(K key) {
-        return false;
+        return containHelper(key, root);
+    }
+
+    private boolean containHelper(K key, BSTNode node) {
+        if (node == null) {
+            return false;
+        }
+        if (node.key.equals(key)) {
+            return true;
+        } else if (node.key.compareTo(key) > 0){
+            return containHelper(key, node.left);
+        } else {
+            return containHelper(key, node.right);
+        }
     }
 
     /**
@@ -71,7 +116,7 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
      */
     @Override
     public int size() {
-        return 0;
+        return this.size;
     }
 
     /**
@@ -79,7 +124,8 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
      */
     @Override
     public void clear() {
-
+        this.root = null;
+        this.size = 0;
     }
 
     /**
@@ -88,7 +134,19 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
      */
     @Override
     public Set<K> keySet() {
-        return Set.of();
+        Set<K> set = new TreeSet<>();
+        keySetHelper(set, root);
+        return set;
+    }
+
+    // Mutator, input set will not be null, so it does not have to return
+    private void keySetHelper(Set<K> set, BSTNode node) {
+        if (node == null) {
+            return;
+        }
+        set.add(node.key);
+        keySetHelper(set, node.left);
+        keySetHelper(set, node.right);
     }
 
     /**
@@ -101,16 +159,78 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
      */
     @Override
     public V remove(K key) {
-        return null;
+        if (root == null) {
+            return null;
+        }
+        V value;
+        if (root.key.equals(key)) {
+            value = root.value;
+            if (root.left == null || root.right == null) {
+                root = root.left == null ? root.right : root.left;
+            } else {
+                BSTNode subTreeMax = removeMax(root.left, root);
+                root.key = subTreeMax.key;
+                root.value = subTreeMax.value;
+            }
+        } else if (root.key.compareTo(key) > 0) {
+            value = removeHelper(key, root.left, root);
+        } else {
+            value = removeHelper(key, root.right, root);
+        }
+        if (value != null) {
+            this.size--;
+        }
+        return value;
     }
 
     /**
-     * Returns an iterator over elements of type {@code T}.
-     *
-     * @return an Iterator.
+     * Remove the (key, value) pair from the subtree of a node,
+     * sub can be null, node can not be null
      */
+    private V removeHelper(K key, BSTNode sub, BSTNode node) {
+        if (sub == null) {
+            return null;
+        }
+        if (sub.key.equals(key)) {
+            V value = sub.value;
+            boolean isLeft = node.key.compareTo(sub.key) > 0;
+            if (sub.left == null || sub.right == null) {
+                BSTNode orphan = sub.left == null ? sub.right : sub.left;
+                if (isLeft) {
+                    node.left = orphan;
+                } else {
+                    node.right = orphan;
+                }
+            } else {
+                BSTNode subTreeMax = removeMax(sub.left, sub);
+                sub.key = subTreeMax.key;
+                sub.value = subTreeMax.value;
+            }
+            return value;
+        } else if (sub.key.compareTo(key) > 0){
+            return removeHelper(key, sub.left, sub);
+        } else {
+            return removeHelper(key, sub.right, sub);
+        }
+    }
+
+    /**
+     * Remove the max element from the subtree of a node,
+     * sub can be null, node can not be null
+     */
+    private BSTNode removeMax(BSTNode sub, BSTNode node) {
+        if (sub == null) {
+            return null;
+        }
+        if (sub.right == null) {
+            node.left = sub.left;
+            return sub;
+        }
+        return removeMax(sub.left, sub);
+    }
+
     @Override
     public Iterator<K> iterator() {
-        return null;
+        return new BSTIterator();
     }
 }
