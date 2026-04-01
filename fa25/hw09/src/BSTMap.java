@@ -1,7 +1,4 @@
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
 
@@ -18,19 +15,40 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
     }
 
     private class BSTIterator implements Iterator<K>{
-        private final Iterator<K> keySetIterator;
-        public BSTIterator() {
-            this.keySetIterator = keySet().iterator();
+        // Store the whole node
+        private Stack<BSTNode> keyStack;
+
+        BSTIterator() {
+            this.keyStack = new Stack<>();
+            pushLeft(root);
+        }
+
+        /**
+         * Push the left-most children of a node into stack,
+         * simulate the recursion of tree iteration
+         */
+        private void pushLeft(BSTNode node) {
+            if (node == null) {
+                return;
+            }
+            keyStack.push(node);
+            pushLeft(node.left);
         }
 
         @Override
         public boolean hasNext() {
-            return keySetIterator.hasNext();
+            return !keyStack.isEmpty();
         }
 
         @Override
         public K next() {
-            return keySetIterator.next();
+            if (!hasNext()) {
+                // Convention
+                throw new NoSuchElementException("No element any more");
+            }
+            BSTNode node = keyStack.pop();
+            pushLeft(node.right);
+            return node.key;
         }
     }
 
@@ -54,9 +72,11 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
             this.size++;
             return new BSTNode(key, value);
         }
-        if (node.key.equals(key)) {
+        // Do not mix .equal()
+        int cmp = node.key.compareTo(key);
+        if (cmp == 0) {
             node.value = value;
-        } else if (node.key.compareTo(key) > 0){
+        } else if (cmp > 0){
             node.left = putHelper(key, value, node.left);
         } else {
             node.right = putHelper(key, value, node.right);
@@ -79,9 +99,10 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
         if (node == null) {
             return null;
         }
-        if (node.key.equals(key)) {
+        int cmp = node.key.compareTo(key);
+        if (cmp == 0) {
             return node.value;
-        } else if (node.key.compareTo(key) > 0){
+        } else if (cmp > 0){
             return getHelper(key, node.left);
         } else {
             return getHelper(key, node.right);
@@ -102,9 +123,10 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
         if (node == null) {
             return false;
         }
-        if (node.key.equals(key)) {
+        int cmp = node.key.compareTo(key);
+        if (cmp == 0) {
             return true;
-        } else if (node.key.compareTo(key) > 0){
+        } else if (cmp > 0){
             return containHelper(key, node.left);
         } else {
             return containHelper(key, node.right);
@@ -161,9 +183,6 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
     public V remove(K key) {
         BSTNode removed = new BSTNode(null, null);
         this.root = removeHelper(key, this.root, removed);
-        if (removed.value != null) {
-            this.size--;
-        }
         return removed.value;
     }
 
@@ -171,21 +190,31 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
      * Remove the (key, value) pair of node, constructively, return itself
      * Mutate the value in the input removed node if found
      */
+    /* Note that different from put() which only need to modify the tree structure, this
+     * method needs to return the value of the deleted node.
+     * Two methods to modify tree structure:
+     *      pass parent as argument and return void(see past git log for my implementation, very verbose)
+     *      return the node itself(change the reference of the node to newly refactored one)
+     * How to output extra information(removed):
+     *      get the information first then remove(use get(key) then remove)
+     *      use dummy node as argument
+     */
     private BSTNode removeHelper(K key, BSTNode node, BSTNode removed) {
         if (node == null) {
             return null;
         }
-        if (node.key.equals(key)) {
+        int cmp = node.key.compareTo(key);
+        if (cmp == 0) {
             removed.value = node.value;
-            if (node.left == null || node.right == null) {
-                 return node.left == null ? node.right : node.left;
-            } else {
-                BSTNode subMax = new BSTNode(null, null);
-                node.left = removeMax(node.left, subMax);
-                node.key = subMax.key;
-                node.value = subMax.value;
-            }
-        } else if (node.key.compareTo(key) > 0){
+            this.size--;
+            // Less curly braces, more readable
+            if (node.left == null) return node.right;
+            if (node.right == null) return node.left;
+            BSTNode subMax = new BSTNode(null, null);
+            node.left = removeMax(node.left, subMax);
+            node.key = subMax.key;
+            node.value = subMax.value;
+        } else if (cmp > 0){
             node.left = removeHelper(key, node.left, removed);
         } else {
             node.right = removeHelper(key, node.right, removed);
@@ -194,7 +223,7 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
     }
 
     /**
-     * Remove the largest item in the node, and put its (key, value) in removed
+     * Remove the largest item in the node tree, and put its (key, value) in removed
      */
     private BSTNode removeMax(BSTNode node, BSTNode removed) {
         if (node.right == null) {

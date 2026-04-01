@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -114,4 +116,18 @@ public class TestBSTMapExtra {
         assertThat(noChild.get('Z')).isNull();
     }
 
+    @Test
+    public void iteratorTest() {
+        BSTMap<String, String> q = new BSTMap<>();
+        List<String> L = new ArrayList<>();
+        q.put("c", "a");
+        q.put("b", "a");
+        q.put("a", "a");
+        q.put("d", "a");
+        q.put("e", "a"); // a b c d e
+        for (String k : q) {
+            L.add(k);
+        }
+        assertThat(L).isEqualTo(List.of("a", "b", "c", "d", "e"));
+    }
 }
