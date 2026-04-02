@@ -50,7 +50,9 @@ public class RedBlackTree<T extends Comparable<T>> {
      * @param node
      */
     void flipColors(RBTreeNode<T> node) {
-        // TODO: YOUR CODE HERE
+        boolean tmp = node.isBlack;
+        node.isBlack = !tmp;
+        node.left.isBlack = node.right.isBlack = tmp;
     }
 
     /**
@@ -61,8 +63,14 @@ public class RedBlackTree<T extends Comparable<T>> {
      * @return
      */
     RBTreeNode<T> rotateRight(RBTreeNode<T> node) {
-        // TODO: YOUR CODE HERE
-        return null;
+        RBTreeNode<T> newRoot = node.left;
+        node.left = newRoot.right;
+        newRoot.right = node;
+
+        boolean tmp = node.isBlack;
+        node.isBlack = newRoot.isBlack;
+        newRoot.isBlack = tmp;
+        return newRoot;
     }
 
     /**
@@ -73,8 +81,14 @@ public class RedBlackTree<T extends Comparable<T>> {
      * @return
      */
     RBTreeNode<T> rotateLeft(RBTreeNode<T> node) {
-        // TODO: YOUR CODE HERE
-        return null;
+        RBTreeNode<T> newRoot = node.right;
+        node.right = newRoot.left;
+        newRoot.left = node;
+
+        boolean tmp = node.isBlack;
+        node.isBlack = newRoot.isBlack;
+        newRoot.isBlack = tmp;
+        return newRoot;
     }
 
     /**
@@ -105,17 +119,25 @@ public class RedBlackTree<T extends Comparable<T>> {
      * @return
      */
     private RBTreeNode<T> insertHelper(RBTreeNode<T> node, T item) {
-        // TODO: Insert (return) new red leaf node.
-
         // TODO: Handle normal binary search tree insertion.
-
-        // TODO: Rotate left operation
-
-        // TODO: Rotate right operation
-
-        // TODO: Color flip
-
-        return null; //fix this return statement
+        if (node == null) {
+            return new RBTreeNode<>(false, item);
+        }
+        int cmp = node.item.compareTo(item);
+        if (cmp > 0) {
+            node.left = insertHelper(node.left, item);
+            if (isRed(node.left) && isRed(node.left.left)) {
+                node = rotateRight(node);
+                flipColors(node);
+            }
+        } else if (cmp < 0) {
+            node.right = insertHelper(node.right, item);
+            if (isRed(node.right)) {
+                if (isRed(node.left)) flipColors(node);
+                else node = rotateLeft(node);
+            }
+        }
+        return node;
     }
 
 }
