@@ -4,7 +4,6 @@ import java.util.*;
 
 /**
  *  A hash table-backed Map implementation.
- *
  *  Assumes null keys will never be inserted, and does not resize down upon remove().
  *  @author YOUR NAME HERE
  */
@@ -120,21 +119,17 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
 
     /**
      * Returns a data structure to be a hash table bucket
-     *
      * The only requirements of a hash table bucket are that we can:
      *  1. Insert items (`add` method)
      *  2. Remove items (`remove` method)
      *  3. Iterate through items (`iterator` method)
      *  Note that this is referring to the hash table bucket itself,
      *  not the hash map itself.
-     *
      * Each of these methods is supported by java.util.Collection,
      * Most data structures in Java inherit from Collection, so we
      * can use almost any data structure as our buckets.
-     *
      * Override this method to use different data structures as
      * the underlying bucket type
-     *
      * BE SURE TO CALL THIS FACTORY METHOD INSTEAD OF CREATING YOUR
      * OWN BUCKET DATA STRUCTURES WITH THE NEW OPERATOR!
      */
@@ -149,16 +144,23 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      */
     @Override
     public void put(K key, V value) {
+        // Abandon using Node(key, null) as input of hashIdx,
+        // Can not invoke buckets[idx].remove(), but clearer
+        int idx = hashIdx(key);
+        for (Node n : buckets[idx]) {
+            if (n.key.equals(key)) {
+                n.value = value;
+                return;
+            }
+        }
+        // Resize when adding, not modifying element
         double factor = (double) size / capacity;
         if (factor >= loadFactor) {
             resize();
         }
-        Node node = new Node(key, value);
-        int idx = hashIdx(node);
-        if (!buckets[idx].remove(node)) {
-            size++;
-        }
-        buckets[idx].add(node);
+        idx = hashIdx(key);
+        buckets[idx].add(new Node(key, value));
+        size++;
     }
 
     private void resize() {
@@ -166,7 +168,7 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
         Collection<Node>[] newBuckets = initTable(capacity);
         for (Collection<Node> bucket : buckets) {
             for (Node n : bucket) {
-                newBuckets[hashIdx(n)].add(n);
+                newBuckets[hashIdx(n.key)].add(n);
             }
         }
         buckets = newBuckets;
@@ -178,9 +180,8 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      */
     @Override
     public V get(K key) {
-        Node tmp = new Node(key, null);
-        for (Node n : buckets[hashIdx(tmp)]) {
-            if (n.equals(tmp)) {
+        for (Node n : buckets[hashIdx(key)]) {
+            if (n.key.equals(key)) {
                 return n.value;
             }
         }
@@ -192,8 +193,12 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      */
     @Override
     public boolean containsKey(K key) {
-        Node tmp = new Node(key, null);
-        return buckets[hashIdx(tmp)].contains(tmp);
+        for (Node n : buckets[hashIdx(key)]) {
+            if (n.key.equals(key)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -233,21 +238,20 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      * Not required for this lab. If you don't implement this, throw an
      * UnsupportedOperationException.
      *
-     * @param key
      */
     @Override
     public V remove(K key) {
-        V value = null;
-        Node tmp = new Node(key, null);
-        int idx = hashIdx(tmp);
+        int idx = hashIdx(key);
         for (Node n : buckets[idx]) {
-            if (n.equals(tmp)) {
-                value = n.value;
+            // Do not modify the collection when iterating it!!
+            // So immediate return is a good practice
+            if (n.key.equals(key)) {
                 buckets[idx].remove(n);
                 size--;
+                return n.value;
             }
         }
-        return value;
+        return null;
     }
 
     @Override
@@ -258,7 +262,7 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
     /**
      * Calculate the entry for a node
      */
-    private int hashIdx(Node node) {
-        return Math.floorMod(node.hashCode(), capacity);
+    private int hashIdx(K key) {
+        return Math.floorMod(key.hashCode(), capacity);
     }
 }
