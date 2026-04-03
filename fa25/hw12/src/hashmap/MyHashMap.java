@@ -1,9 +1,6 @@
 package hashmap;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Set;
+import java.util.*;
 
 /**
  *  A hash table-backed Map implementation.
@@ -39,6 +36,35 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
         @Override
         public int hashCode() {
             return key.hashCode();
+        }
+    }
+
+    private class hashMapIterator implements Iterator<K> {
+        private int iterSize;
+        private int iterIdx;
+        private Iterator<Node> bucketIterator;
+
+        public hashMapIterator() {
+           iterSize = 0;
+           iterIdx = 0;
+           bucketIterator = buckets[iterIdx].iterator();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return iterSize != size;
+        }
+
+        @Override
+        public K next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("No more elements");
+            }
+            iterSize++;
+            while (!bucketIterator.hasNext()) {
+                bucketIterator = buckets[++iterIdx].iterator();
+            }
+            return bucketIterator.next().key;
         }
     }
 
@@ -194,7 +220,11 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      */
     @Override
     public Set<K> keySet() {
-        return Set.of();
+        Set<K> set = new HashSet<>();
+        for (K key : this) {
+            set.add(key);
+        }
+        return set;
     }
 
     /**
@@ -207,18 +237,22 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      */
     @Override
     public V remove(K key) {
-        size--;
-        return null;
+        V value = null;
+        Node tmp = new Node(key, null);
+        int idx = hashIdx(tmp);
+        for (Node n : buckets[idx]) {
+            if (n.equals(tmp)) {
+                value = n.value;
+                buckets[idx].remove(n);
+                size--;
+            }
+        }
+        return value;
     }
 
-    /**
-     * Returns an iterator over elements of type {@code T}.
-     *
-     * @return an Iterator.
-     */
     @Override
     public Iterator<K> iterator() {
-        return null;
+        return new hashMapIterator();
     }
 
     /**
