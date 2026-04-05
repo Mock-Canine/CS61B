@@ -6,8 +6,6 @@ import java.time.Instant;
 import java.util.Date;
 
 /** Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
  */
 public class Commit implements Serializable {
     // TODO: persistence part: use SHA string to persistence, and maintain
@@ -33,13 +31,6 @@ public class Commit implements Serializable {
     /**
      *
      */
-    public static Commit fromFile(String name) {
-        return null;
-    }
-
-    /**
-     *
-     */
     public Commit(String message) {
         this.message = message;
         // If no branch inside heads/, treat as initial commit
@@ -55,17 +46,24 @@ public class Commit implements Serializable {
     }
 
     /**
-     * Update objects/, HEAD, refs/heads/ and save commit
+     * Update commits/, HEAD, refs/heads/
      */
     public void saveCommit() {
-        // TODO: change this prefix
-        String prefix = "commit\0";
-        String hash = Utils.sha1(prefix, this);
+        Object serialized = Utils.serialize(this);
+        String hash = Utils.sha1(serialized);
         // Use hash as the file name
-        File object = Utils.join(Repository.OBJECTS_DIR, hash);
-        Utils.writeContents(object, prefix, Utils.serialize(this));
+        File content = Utils.join(Repository.COMMITS_DIR, hash);
+        Utils.writeContents(content, serialized);
         // Create or overwrite the branch pointer
         File head = Utils.join(Repository.HEADS_DIR, branch);
         Utils.writeContents(head, hash);
     }
+
+    /**
+     * Retrieve a commit object from file
+     */
+    public static Commit fromFile(String name) {
+        return null;
+    }
+
 }

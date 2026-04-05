@@ -5,14 +5,13 @@ import java.io.IOException;
 
 import static gitlet.Utils.*;
 
+// TODO: try modify the objects/ to mimic git later
 /** Represents a gitlet repository.
  * .gitlet/ filesystem
  * .gitlet/ -- gitlet repository
  *    - objects/ -- folder containing blobs and commits
- *    TODO: just use flat file now, not this structure
- *       - xx/ -- folder named by the first 2 number of an object hash
- *          - xx -- file named by the rest 38 number,
- *               -- containing persistent data for commit, byte data for blob
+ *       - commits/ -- folder containing serialized commits named by its hash
+ *       - blobs/ -- folder containing blobs named by its hash
  *    - refs/ -- folder tracking the local and remote branch header
  *       - heads/ -- folder tracking local branch header
  *          - master -- file containing a string of branch hash
@@ -31,7 +30,9 @@ public class Repository {
     // TODO: add will change objects/ and INDEX_FI
     public static final File HEAD_FI = join(GITLET_DIR, "HEAD");
     public static final File INDEX_FI = join(GITLET_DIR, "index");
-    /** The refs/heads subdirectory. */
+    /** The subdirectories of objects/ and refs/. */
+    public static final File COMMITS_DIR = join(OBJECTS_DIR, "commits");
+    public static final File BLOBS_DIR = join(OBJECTS_DIR, "blobs");
     public static final File HEADS_DIR = join(REFS_DIR, "heads");
 
     /**
@@ -42,7 +43,7 @@ public class Repository {
             Utils.message("A Gitlet version-control system already exists in the current directory.");
             System.exit(0);
         }
-        if (!GITLET_DIR.mkdir() || !OBJECTS_DIR.mkdir() ||
+        if (!GITLET_DIR.mkdir() || !OBJECTS_DIR.mkdir() || !COMMITS_DIR.mkdir() || !BLOBS_DIR.mkdir() ||
             !REFS_DIR.mkdir() || !HEADS_DIR.mkdir()) {
             Utils.message("Fail to construct gitlet filesystem");
             System.exit(0);
