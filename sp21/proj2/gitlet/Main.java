@@ -17,7 +17,7 @@ public class Main {
         switch(firstArg) {
             case "init":
                 validateNumArgs(firstArg, args, 1);
-                Repository.initFilesystem();
+                Repository.init();
                 break;
             case "add":
                 // TODO: add the check for not in gitlet repo
