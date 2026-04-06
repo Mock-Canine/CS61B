@@ -21,7 +21,6 @@ public class Main {
                 Repository.init();
                 break;
             case "add":
-                // Wrong format will also output incorrect operands.
                 validateNumArgs(args, 2);
                 Repository.add(args[1]);
                 break;
@@ -42,9 +41,6 @@ public class Main {
     /**
      * Checks the number of arguments versus the expected number,
      * Print message and exit program if not match
-     *
-     * @param args Argument array from command line
-     * @param n    Number of expected arguments
      */
     public static void validateNumArgs(String[] args, int n) {
         if (args.length != n) {

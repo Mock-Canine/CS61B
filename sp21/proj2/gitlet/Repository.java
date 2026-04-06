@@ -41,7 +41,6 @@ public class Repository {
             message("A Gitlet version-control system already exists in the current directory.");
             System.exit(0);
         }
-        // Create whole filesystem
         if (!GITLET_DIR.mkdir() || !OBJECTS_DIR.mkdir() || !COMMITS_DIR.mkdir() || !BLOBS_DIR.mkdir() ||
             !REFS_DIR.mkdir() || !HEADS_DIR.mkdir()) {
             message("Fail to construct gitlet filesystem");
@@ -52,7 +51,6 @@ public class Repository {
         // Build empty staging area
         Index index = new Index();
         index.saveIndex();
-
         makeCommit("initial commit");
     }
 
@@ -67,17 +65,17 @@ public class Repository {
         Index index = Index.fromFile();
 
         byte[] content = readContents(file);
-        String fileHash = sha1(content);
-        String commitHash = curr.blobs.get(f);
+        String fileHash = sha1((Object) content);
+        String commitHash = curr.blobHash(f);
         // do not use state machine, use rule-based method
         // And the ADT often support both create or overwrite operation in one function(like remove)
-        index.indexRm.remove(f);
+        index.unstageForRemoval(f);
         if (fileHash.equals(commitHash)) {
-            index.indexAdd.remove(f);
+            index.unstageForAddition(f);
         } else {
-            index.indexAdd.put(f, fileHash);
+            index.stageForAddition(f, fileHash);
             File blob = join(BLOBS_DIR, fileHash);
-            writeContents(blob, content);
+            writeContents(blob, (Object) content);
         }
         index.saveIndex();
     }
@@ -95,17 +93,17 @@ public class Repository {
         isInRepo();
         Commit curr = Commit.fromFile("HEAD");
         Index index = Index.fromFile();
-        boolean inCommit = curr.blobs.containsKey(f);
-        boolean inIndex = index.indexAdd.containsKey(f);
-        if (!inCommit && !inIndex) {
+        boolean inCommit = curr.inCommit(f);
+        boolean stageForAddition = index.isStaged(f);
+        if (!inCommit && !stageForAddition) {
             message("No reason to remove the file.");
             System.exit(0);
         }
-        index.indexAdd.remove(f);
+        index.unstageForAddition(f);
         if (inCommit) {
             // Remove from work dir
             restrictedDelete(f);
-            index.indexRm.add(f);
+            index.stageForRemoval(f);
         }
         // TODO: saveIndex every time is like bad feeling
         index.saveIndex();
