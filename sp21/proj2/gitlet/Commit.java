@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Date;
+import java.util.TreeMap;
 
 /** Represents a gitlet commit object.
  */
@@ -26,11 +27,8 @@ public class Commit implements Serializable {
     // TODO: only serialize necessary part
     private String branch;
     /** The blobs tracked by the commit */
-    // TODO
+    private TreeMap<String, String> blobs;
 
-    /**
-     *
-     */
     public Commit(String message) {
         this.message = message;
         // If no branch inside heads/, treat as initial commit
@@ -39,6 +37,7 @@ public class Commit implements Serializable {
             parent = null;
             parentHash = null;
             branch = "master";
+            blobs = null;
         } else {
             date = Date.from(Instant.now());
             // TODO: look up the HEAD file to initialize parent and hash and branch
@@ -49,6 +48,7 @@ public class Commit implements Serializable {
      * Update commits/, HEAD, refs/heads/
      */
     public void saveCommit() {
+        // TODO: clear index
         Object serialized = Utils.serialize(this);
         String hash = Utils.sha1(serialized);
         // Use hash as the file name

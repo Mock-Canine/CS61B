@@ -6,7 +6,7 @@ import java.io.IOException;
 import static gitlet.Utils.*;
 
 // TODO: try modify the objects/ to mimic git later
-/** Represents a gitlet repository.
+/** Represents a gitlet repository and manipulates file operations
  * .gitlet/ filesystem
  * .gitlet/ -- gitlet repository
  *    - objects/ -- folder containing blobs and commits
@@ -49,7 +49,7 @@ public class Repository {
             System.exit(0);
         }
         // Default HEAD
-        Utils.writeContents(Repository.HEAD_FI, "ref: refs/heads/master");
+        Utils.writeContents(Repository.HEAD_FI, "refs/heads/master");
         makeCommit("initial commit");
     }
 
@@ -59,5 +59,24 @@ public class Repository {
     private static void makeCommit(String message) {
         Commit commit = new Commit(message);
         commit.saveCommit();
+    }
+
+    private static void isInRepo() {
+        if (!GITLET_DIR.exists()) {
+            Utils.message("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+    }
+    public static void rm(String f) {
+        isInRepo();
+    }
+
+    public static void add(String f) {
+        isInRepo();
+        File file = join(CWD, f);
+        if (!file.exists()) {
+            Utils.message("File does not exist.");
+            System.exit(0);
+        }
     }
 }

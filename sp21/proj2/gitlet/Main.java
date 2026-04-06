@@ -20,9 +20,13 @@ public class Main {
                 Repository.init();
                 break;
             case "add":
-                // TODO: add the check for not in gitlet repo
                 // Wrong format will also output incorrect operands.
-                // TODO: handle the `add [filename]` command
+                validateNumArgs(firstArg, args, 2);
+                Repository.add(args[1]);
+                break;
+            case "rm":
+                validateNumArgs(firstArg, args, 2);
+                Repository.rm(args[1]);
                 break;
             default:
                 Utils.message("No command with that name exists.");
