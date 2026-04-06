@@ -5,6 +5,8 @@ import java.io.Serializable;
 import java.time.Instant;
 import java.util.Date;
 import java.util.TreeMap;
+import java.util.TreeSet;
+import static gitlet.Utils.*;
 
 /**
  * Represents a gitlet commit object.
@@ -17,7 +19,7 @@ public class Commit implements Serializable {
     public final Date date;
     // TODO: handle multiple parents here
     /** The parents of commit. */
-    public transient Commit parent;
+//    public transient Commit parent;
     public String parentHash;
     /** the branch of the commit */
     public String branch;
@@ -33,37 +35,45 @@ public class Commit implements Serializable {
         String headHash = name;
         if (name.equals("HEAD")) {
             // Return the branch name under refs/heads/ HEAD points to
-            String branch = Utils.readContentsAsString(Repository.HEAD_FI);
+            String branch = readContentsAsString(Repository.HEAD_FI);
             // Return the branch hash
-            File head = Utils.join(Repository.HEADS_DIR, branch);
-            headHash = Utils.readContentsAsString(head);
+            File head = join(Repository.HEADS_DIR, branch);
+            headHash = readContentsAsString(head);
         }
         // Retrieve it from objects/commits/headHash
-        File commit = Utils.join(Repository.COMMITS_DIR, headHash);
+        File commit = join(Repository.COMMITS_DIR, headHash);
         // FIXME: When read back, the transient part will be set to default,
         // so need to give the proper value
-        return Utils.readObject(commit, Commit.class);
+        return readObject(commit, Commit.class);
     }
 
     public Commit(String message) {
         this.message = message;
         // If no branch inside heads/, treat as initial commit
-        if (Utils.plainFilenamesIn(Repository.HEADS_DIR).isEmpty()) {
-            date = Date.from(Instant.EPOCH);
+        if (plainFilenamesIn(Repository.HEADS_DIR).isEmpty()) {
             parentHash = "";
-            branch = "master";
             blobs = new TreeMap<>();
+            date = Date.from(Instant.EPOCH);
+            branch = "master";
         } else {
-            date = Date.from(Instant.now());
             Commit parent = fromFile("HEAD");
             // TODO: may be better approach
-            parentHash = Utils.sha1(Utils.serialize(parent));
-            branch = parent.branch;
+            parentHash = sha1(serialize(parent));
             blobs = parent.blobs;
-            // Clear Index
+            // Track and clear Index
             Index index = Index.fromFile();
+            if (index.indexAdd.isEmpty() && index.indexRm.isEmpty()) {
+                message("No changes added to the commit.");
+                System.exit(0);
+            }
             blobs.putAll(index.indexAdd);
             blobs.keySet().removeAll(index.indexRm);
+            index.indexAdd = new TreeMap<>();
+            index.indexRm = new TreeSet<>();
+            index.saveIndex();
+
+            date = Date.from(Instant.now());
+            branch = parent.branch;
         }
     }
 
@@ -71,13 +81,13 @@ public class Commit implements Serializable {
      * Update commits/, refs/heads/
      */
     public void saveCommit() {
-        byte[] serialized = Utils.serialize(this);
-        String hash = Utils.sha1(serialized);
+        byte[] serialized = serialize(this);
+        String hash = sha1(serialized);
         // Use hash as the file name
-        File content = Utils.join(Repository.COMMITS_DIR, hash);
-        Utils.writeContents(content, serialized);
+        File content = join(Repository.COMMITS_DIR, hash);
+        writeContents(content, serialized);
         // Create or overwrite the branch pointer
-        File head = Utils.join(Repository.HEADS_DIR, branch);
-        Utils.writeContents(head, hash);
+        File head = join(Repository.HEADS_DIR, branch);
+        writeContents(head, hash);
     }
 }

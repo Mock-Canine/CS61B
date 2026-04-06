@@ -38,17 +38,17 @@ public class Repository {
      */
     public static void init() {
         if (GITLET_DIR.exists()) {
-            Utils.message("A Gitlet version-control system already exists in the current directory.");
+            message("A Gitlet version-control system already exists in the current directory.");
             System.exit(0);
         }
         // Create whole filesystem
         if (!GITLET_DIR.mkdir() || !OBJECTS_DIR.mkdir() || !COMMITS_DIR.mkdir() || !BLOBS_DIR.mkdir() ||
             !REFS_DIR.mkdir() || !HEADS_DIR.mkdir()) {
-            Utils.message("Fail to construct gitlet filesystem");
+            message("Fail to construct gitlet filesystem");
             System.exit(0);
         }
         // Default HEAD, point to branch master
-        Utils.writeContents(Repository.HEAD_FI, "master");
+        writeContents(Repository.HEAD_FI, "master");
         // Build empty staging area
         Index index = new Index();
         index.saveIndex();
@@ -56,19 +56,39 @@ public class Repository {
         makeCommit("initial commit");
     }
 
-    /**
-     * Create a commit object and save it to gitlet filesystem
-     */
-    private static void makeCommit(String message) {
-        Commit commit = new Commit(message);
-        commit.saveCommit();
-    }
-
-    private static void isInRepo() {
-        if (!GITLET_DIR.exists()) {
-            Utils.message("Not in an initialized Gitlet directory.");
+    public static void add(String f) {
+        isInRepo();
+        File file = join(CWD, f);
+        if (!file.exists()) {
+            message("File does not exist.");
             System.exit(0);
         }
+        Commit curr = Commit.fromFile("HEAD");
+        Index index = Index.fromFile();
+
+        byte[] content = readContents(file);
+        String fileHash = sha1(content);
+        String commitHash = curr.blobs.get(f);
+        // do not use state machine, use rule-based method
+        // And the ADT often support both create or overwrite operation in one function(like remove)
+        index.indexRm.remove(f);
+        if (fileHash.equals(commitHash)) {
+            index.indexAdd.remove(f);
+        } else {
+            index.indexAdd.put(f, fileHash);
+            File blob = join(BLOBS_DIR, fileHash);
+            writeContents(blob, content);
+        }
+        index.saveIndex();
+    }
+
+    public static void commit(String message) {
+        isInRepo();
+        if (message.isEmpty()) {
+            message("Please enter a commit message.");
+            System.exit(0);
+        }
+        makeCommit(message);
     }
 
     public static void rm(String f) {
@@ -78,41 +98,32 @@ public class Repository {
         boolean inCommit = curr.blobs.containsKey(f);
         boolean inIndex = index.indexAdd.containsKey(f);
         if (!inCommit && !inIndex) {
-            Utils.message("No reason to remove the file.");
+            message("No reason to remove the file.");
             System.exit(0);
         }
         index.indexAdd.remove(f);
         if (inCommit) {
             // Remove from work dir
-            Utils.restrictedDelete(f);
+            restrictedDelete(f);
             index.indexRm.add(f);
         }
         // TODO: saveIndex every time is like bad feeling
         index.saveIndex();
     }
 
-    public static void add(String f) {
-        isInRepo();
-        File file = join(CWD, f);
-        if (!file.exists()) {
-            Utils.message("File does not exist.");
+    /**
+     * Create a commit object and save it to gitlet filesystem
+     */
+    // TODO: is it useful to maintain a commit tree and serialize when needed?
+    private static void makeCommit(String message) {
+        Commit commit = new Commit(message);
+        commit.saveCommit();
+    }
+
+    private static void isInRepo() {
+        if (!GITLET_DIR.exists()) {
+            message("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
-        Commit curr = Commit.fromFile("HEAD");
-        Index index = Index.fromFile();
-
-        byte[] content = Utils.readContents(file);
-        String fileHash = Utils.sha1(content);
-        String commitHash = curr.blobs.get(f);
-        // do not use state machine, use rule-based method
-        index.indexRm.remove(f);
-        if (fileHash.equals(commitHash)) {
-            index.indexAdd.remove(f);
-        } else {
-            index.indexAdd.put(f, fileHash);
-            File blob = Utils.join(BLOBS_DIR, fileHash);
-            Utils.writeContents(blob, content);
-        }
-        index.saveIndex();
     }
 }
