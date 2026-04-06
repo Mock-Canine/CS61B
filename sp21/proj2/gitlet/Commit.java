@@ -6,50 +6,72 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.TreeMap;
 
-/** Represents a gitlet commit object.
+/**
+ * Represents a gitlet commit object.
  */
 public class Commit implements Serializable {
-    // TODO: persistence part: use SHA string to persistence, and maintain
-    // a runtime map for (hash, object),
-    // Add redundant pointer as private transient ... as the pointer
-    // FIXME: When read back, the transient part will be set to default,
-    // so need to give the proper value
-
+    // TODO: figure out which field need to be set private
     /** The message of this Commit. */
-    private final String message;
+    public final String message;
     /** The timestamp of this commit. */
-    private final Date date;
+    public final Date date;
     // TODO: handle multiple parents here
     /** The parents of commit. */
-    private transient Commit parent;
-    private String parentHash;
+    public transient Commit parent;
+    public String parentHash;
     /** the branch of the commit */
-    // TODO: only serialize necessary part
-    private String branch;
+    public String branch;
     /** The blobs tracked by the commit */
-    private TreeMap<String, String> blobs;
+    public TreeMap<String, String> blobs;
+
+    /**
+     * Retrieve a commit object from file
+     * @param name "HEAD" or valid commit hash
+     */
+    // TODO: Pay attention to invalid hash situation or typo of HEAD(HED for example)
+    public static Commit fromFile(String name) {
+        String headHash = name;
+        if (name.equals("HEAD")) {
+            // Return the branch name under refs/heads/ HEAD points to
+            String branch = Utils.readContentsAsString(Repository.HEAD_FI);
+            // Return the branch hash
+            File head = Utils.join(Repository.HEADS_DIR, branch);
+            headHash = Utils.readContentsAsString(head);
+        }
+        // Retrieve it from objects/commits/headHash
+        File commit = Utils.join(Repository.COMMITS_DIR, headHash);
+        // FIXME: When read back, the transient part will be set to default,
+        // so need to give the proper value
+        return Utils.readObject(commit, Commit.class);
+    }
 
     public Commit(String message) {
         this.message = message;
         // If no branch inside heads/, treat as initial commit
         if (Utils.plainFilenamesIn(Repository.HEADS_DIR).isEmpty()) {
             date = Date.from(Instant.EPOCH);
-            parent = null;
-            parentHash = null;
+            parentHash = "";
             branch = "master";
-            blobs = null;
+            blobs = new TreeMap<>();
         } else {
             date = Date.from(Instant.now());
-            // TODO: look up the HEAD file to initialize parent and hash and branch
+            Commit parent = fromFile("HEAD");
+            // TODO: may be better approach
+            parentHash = Utils.sha1(Utils.serialize(parent));
+            branch = parent.branch;
+            blobs = parent.blobs;
+            // Clear Index
+            Index index = Index.fromFile();
+            blobs.putAll(index.indexAdd);
+            blobs.keySet().removeAll(index.indexRm);
         }
     }
 
     /**
-     * Update commits/, HEAD, refs/heads/
+     * Update commits/, refs/heads/
      */
     public void saveCommit() {
-        // TODO: clear index
-        Object serialized = Utils.serialize(this);
+        byte[] serialized = Utils.serialize(this);
         String hash = Utils.sha1(serialized);
         // Use hash as the file name
         File content = Utils.join(Repository.COMMITS_DIR, hash);
@@ -58,12 +80,4 @@ public class Commit implements Serializable {
         File head = Utils.join(Repository.HEADS_DIR, branch);
         Utils.writeContents(head, hash);
     }
-
-    /**
-     * Retrieve a commit object from file
-     */
-    public static Commit fromFile(String name) {
-        return null;
-    }
-
 }
