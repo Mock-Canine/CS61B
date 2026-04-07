@@ -136,6 +136,10 @@ public class Repo {
         }
     }
 
+    public static void status() {
+
+    }
+
     /**
      * Handle three usages of checkout, input params must be valid for usages
      * takes a map which may contains keys [branchName, commitId, fileName],
@@ -159,6 +163,18 @@ public class Repo {
             File file = join(CWD, name);
             writeContents(file, (Object) readContents(blob));
         }
+    }
+
+    public static void branch(String name) {
+        isInRepo();
+        for (String b : plainFilenamesIn(HEADS_DIR)) {
+            if (b.equals(name)) {
+                message("A branch with that name already exists.");
+                System.exit(0);
+            }
+        }
+        File newBranch = join(HEADS_DIR, name);
+        writeContents(newBranch, Commit.headHash());
     }
 
     /**

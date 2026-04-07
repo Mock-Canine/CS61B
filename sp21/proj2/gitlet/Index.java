@@ -85,4 +85,12 @@ public class Index implements Serializable {
         addition.clear();
         removal.clear();
     }
+
+//    @Override
+//    public String toString() {
+//        return """
+//            === Staged Files ===
+//
+//            """;
+//    }
 }

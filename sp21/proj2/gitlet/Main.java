@@ -48,9 +48,17 @@ public class Main {
                 validateNumArgs(args, 2);
                 Repo.find(args[1]);
                 break;
+            case "status":
+                validateNumArgs(args, 1);
+                Repo.status();
+                break;
             case "checkout":
                 // Do format check inside this func
                 Repo.checkout(parseCheckout(args));
+                break;
+            case "branch":
+                validateNumArgs(args, 2);
+                Repo.branch(args[1]);
                 break;
             default:
                 message("No command with that name exists.");
