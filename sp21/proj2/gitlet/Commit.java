@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Date;
-import java.util.List;
 import java.util.TreeMap;
 
 import static gitlet.Utils.*;
@@ -19,7 +18,7 @@ public class Commit implements Serializable {
     private final Date date;
     // TODO: handle multiple parents here
     /** The parents of commit. */
-//    public transient Commit parent;
+    // public transient Commit parent;
     private final String parentHash;
     /** The hash of the commit, will be set when initialized or retrieved from file */
     private transient String myHash;
@@ -91,7 +90,9 @@ public class Commit implements Serializable {
                 fullHash = f;
             }
         }
-        if (num == 1) return fullHash;
+        if (num == 1) {
+            return fullHash;
+        }
         return null;
     }
 

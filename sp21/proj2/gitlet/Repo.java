@@ -42,8 +42,8 @@ public class Repo {
             message("A Gitlet version-control system already exists in the current directory.");
             System.exit(0);
         }
-        if (!GITLET_DIR.mkdir() || !OBJECTS_DIR.mkdir() || !COMMITS_DIR.mkdir() || !BLOBS_DIR.mkdir() ||
-            !REFS_DIR.mkdir() || !HEADS_DIR.mkdir()) {
+        if (!GITLET_DIR.mkdir() || !OBJECTS_DIR.mkdir() || !COMMITS_DIR.mkdir() || !BLOBS_DIR.mkdir()
+            || !REFS_DIR.mkdir() || !HEADS_DIR.mkdir()) {
             message("Fail to construct gitlet filesystem");
             System.exit(0);
         }

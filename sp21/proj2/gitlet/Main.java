@@ -19,7 +19,7 @@ public class Main {
         }
         String firstArg = args[0];
         // TODO: Pay attention to format error, not just args number error
-        switch(firstArg) {
+        switch (firstArg) {
             case "init":
                 validateNumArgs(args, 1);
                 Repo.init();
