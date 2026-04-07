@@ -147,8 +147,12 @@ public class Commit implements Serializable {
     /**
      * Return the hash of this commit
      */
-    public String hash() {
+    public String getHash() {
         return myHash;
+    }
+
+    public String getMessage() {
+        return message;
     }
 
     @Override

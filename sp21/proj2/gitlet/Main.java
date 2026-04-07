@@ -44,6 +44,10 @@ public class Main {
                 validateNumArgs(args, 1);
                 Repo.globalLog();
                 break;
+            case "find":
+                validateNumArgs(args, 2);
+                Repo.find(args[1]);
+                break;
             case "checkout":
                 // Do format check inside this func
                 Repo.checkout(parseCheckout(args));

@@ -120,6 +120,22 @@ public class Repo {
         }
     }
 
+    public static void find(String message){
+        isInRepo();
+        boolean isFound = false;
+        for (String name : plainFilenamesIn(COMMITS_DIR)) {
+            Commit commit = Commit.fromFile(name);
+            if (commit.getMessage().equals(message)) {
+                isFound = true;
+                System.out.println(commit.getHash());
+            }
+        }
+        if (!isFound) {
+            message("Found no commit with that message.");
+            System.exit(0);
+        }
+    }
+
     /**
      * Handle three usages of checkout, input params must be valid for usages
      * takes a map which may contains keys [branchName, commitId, fileName],
