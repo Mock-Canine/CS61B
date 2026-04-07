@@ -22,31 +22,31 @@ public class Main {
         switch(firstArg) {
             case "init":
                 validateNumArgs(args, 1);
-                Repository.init();
+                Repo.init();
                 break;
             case "add":
                 validateNumArgs(args, 2);
-                Repository.add(args[1]);
+                Repo.add(args[1]);
                 break;
             case "commit":
                 validateNumArgs(args, 2);
-                Repository.commit(args[1]);
+                Repo.commit(args[1]);
                 break;
             case "rm":
                 validateNumArgs(args, 2);
-                Repository.rm(args[1]);
+                Repo.rm(args[1]);
                 break;
             case "log":
                 validateNumArgs(args, 1);
-                Repository.log();
+                Repo.log();
                 break;
             case "global-log":
                 validateNumArgs(args, 1);
-                Repository.globalLog();
+                Repo.globalLog();
                 break;
             case "checkout":
                 // Do format check inside this func
-                Repository.checkout(parseCheckout(args));
+                Repo.checkout(parseCheckout(args));
                 break;
             default:
                 message("No command with that name exists.");
@@ -73,9 +73,9 @@ public class Main {
         // TODO: handle branch later
         int len = args.length;
         Map<String, String> map = new TreeMap<>();
-        if (len == 3 && args[1].equals("==")) {
+        if (len == 3 && args[1].equals("--")) {
             map.put("fileName", args[2]);
-        } else if (len == 4 && args[2].equals("==")) {
+        } else if (len == 4 && args[2].equals("--")) {
             map.put("commitId", args[1]);
             map.put("fileName", args[3]);
         }

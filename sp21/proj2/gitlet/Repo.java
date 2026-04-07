@@ -19,7 +19,7 @@ import static gitlet.Utils.*;
  *    - HEAD -- file containing the branch name under refs/heads/ head pointer points to
  *    - index -- file(staging area) tracking files for addition or removal
  */
-public class Repository {
+public class Repo {
     /** The current working directory. */
     public static final File CWD = new File(System.getProperty("user.dir"));
     /** The .gitlet directory. */
@@ -49,7 +49,7 @@ public class Repository {
         }
         // Default HEAD, point to branch master
         // TODO: may be use a func for switch to handle HEAD file
-        writeContents(Repository.HEAD_FI, "master");
+        writeContents(Repo.HEAD_FI, "master");
         // Build empty staging area
         Index index = new Index();
         index.saveIndex();
@@ -65,7 +65,6 @@ public class Repository {
         }
         Commit curr = Commit.fromFile(Commit.headHash());
         Index index = Index.fromFile();
-
         byte[] content = readContents(file);
         String fileHash = sha1((Object) content);
         // File may not be tracked by the commit
@@ -85,10 +84,6 @@ public class Repository {
 
     public static void commit(String message) {
         isInRepo();
-        if (message.isEmpty()) {
-            message("Please enter a commit message.");
-            System.exit(0);
-        }
         makeCommit(message);
     }
 
@@ -126,7 +121,7 @@ public class Repository {
     }
 
     /**
-     * Handle three usages of checkout
+     * Handle three usages of checkout, input params must be valid for usages
      * takes a map which may contains keys [branchName, commitId, fileName],
      */
     public static void checkout(Map<String, String> args) {
@@ -134,6 +129,19 @@ public class Repository {
         isInRepo();
         if (args.get("branchName") == null) {
             String hash = args.get("commitId");
+            if (hash == null) {
+                hash = Commit.headHash();
+            }
+            String name = args.get("fileName");
+            Commit commit = Commit.fromFile(hash);
+            String blobHash = commit.blobHash(name);
+            if (blobHash == null) {
+                message("File does not exist in that commit.");
+                System.exit(0);
+            }
+            File blob = join(BLOBS_DIR, blobHash);
+            File file = join(CWD, name);
+            writeContents(file, (Object) readContents(blob));
         }
     }
 

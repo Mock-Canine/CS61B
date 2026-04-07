@@ -22,14 +22,14 @@ public class Index implements Serializable {
      * Retrieve content from index file
      */
     public static Index fromFile() {
-        return readObject(Repository.INDEX_FI, Index.class);
+        return readObject(Repo.INDEX_FI, Index.class);
     }
 
     /**
      * Create or overwrite index file
      */
     public void saveIndex() {
-        writeObject(Repository.INDEX_FI, this);
+        writeObject(Repo.INDEX_FI, this);
     }
 
     /**
