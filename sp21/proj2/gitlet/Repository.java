@@ -109,13 +109,16 @@ public class Repository {
         index.saveIndex();
     }
 
+    public static void log() {
+        isInRepo();
+        Commit.printHistory("HEAD");
+    }
+
     /**
      * Create a commit object and save it to gitlet filesystem
      */
-    // TODO: is it useful to maintain a commit tree and serialize when needed?
     private static void makeCommit(String message) {
-        Commit commit = new Commit(message);
-        commit.saveCommit();
+        new Commit(message);
     }
 
     private static void isInRepo() {
