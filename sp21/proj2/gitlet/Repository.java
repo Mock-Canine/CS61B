@@ -47,6 +47,7 @@ public class Repository {
             System.exit(0);
         }
         // Default HEAD, point to branch master
+        // TODO: may be use a func for switch to handle HEAD file
         writeContents(Repository.HEAD_FI, "master");
         // Build empty staging area
         Index index = new Index();
@@ -66,11 +67,12 @@ public class Repository {
 
         byte[] content = readContents(file);
         String fileHash = sha1((Object) content);
-        String commitHash = curr.blobHash(f);
+        // File may not be tracked by the commit
+        String blobHash = curr.blobHash(f);
         // do not use state machine, use rule-based method
         // And the ADT often support both create or overwrite operation in one function(like remove)
         index.unstageForRemoval(f);
-        if (fileHash.equals(commitHash)) {
+        if (fileHash.equals(blobHash)) {
             index.unstageForAddition(f);
         } else {
             index.stageForAddition(f, fileHash);
@@ -112,6 +114,14 @@ public class Repository {
     public static void log() {
         isInRepo();
         Commit.printHistory("HEAD");
+    }
+
+    public static void globalLog() {
+        isInRepo();
+        for (String name : plainFilenamesIn(COMMITS_DIR)) {
+            Commit commit = Commit.fromFile(name);
+            System.out.println(commit);
+        }
     }
 
     /**

@@ -15,6 +15,7 @@ public class Main {
             System.exit(0);
         }
         String firstArg = args[0];
+        // TODO: Pay attention to format error, not just args number error
         switch(firstArg) {
             case "init":
                 validateNumArgs(args, 1);
@@ -35,6 +36,10 @@ public class Main {
             case "log":
                 validateNumArgs(args, 1);
                 Repository.log();
+                break;
+            case "global-log":
+                validateNumArgs(args, 1);
+                Repository.globalLog();
                 break;
             default:
                 message("No command with that name exists.");
