@@ -1,5 +1,8 @@
 package gitlet;
 
+import java.util.Map;
+import java.util.TreeMap;
+
 import static gitlet.Utils.*;
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author MockCanine
@@ -41,6 +44,10 @@ public class Main {
                 validateNumArgs(args, 1);
                 Repository.globalLog();
                 break;
+            case "checkout":
+                // Do format check inside this func
+                Repository.checkout(parseCheckout(args));
+                break;
             default:
                 message("No command with that name exists.");
                 System.exit(0);
@@ -56,5 +63,26 @@ public class Main {
             message("Incorrect operands.");
             System.exit(0);
         }
+    }
+
+    /**
+     * Parse the arguments for checkout command,
+     * returns a map which may contains keys [branchName, commitId, fileName],
+     */
+    public static Map<String, String> parseCheckout(String[] args) {
+        // TODO: handle branch later
+        int len = args.length;
+        Map<String, String> map = new TreeMap<>();
+        if (len == 3 && args[1].equals("==")) {
+            map.put("fileName", args[2]);
+        } else if (len == 4 && args[2].equals("==")) {
+            map.put("commitId", args[1]);
+            map.put("fileName", args[3]);
+        }
+        if (map.isEmpty()) {
+            message("Incorrect operands.");
+            System.exit(0);
+        }
+        return map;
     }
 }

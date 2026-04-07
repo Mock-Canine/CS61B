@@ -29,13 +29,10 @@ public class Commit implements Serializable {
 
     /**
      * Retrieve a commit object from file
-     * @param hash "HEAD" or valid commit hash
+     * @param hash valid commit hash
      */
-    // TODO: Pay attention to invalid hash situation or typo of HEAD(HED for example)
+    // TODO: Pay attention to invalid hash situation
     public static Commit fromFile(String hash) {
-        if (hash.equals("HEAD")) {
-            hash = headHash();
-        }
         // Retrieve it from objects/commits/
         File name = join(Repository.COMMITS_DIR, hash);
         Commit commit = readObject(name, Commit.class);
@@ -57,17 +54,16 @@ public class Commit implements Serializable {
     /**
      * Print history a commit, if there are multiple branches,
      * just print the history of current branch and extra merge information
-     * @param hash "HEAD" or valid commit hash
+     * @param hash valid commit hash
      */
     public static void printHistory(String hash) {
         // TODO: add logic for merge later
         // Hit initial commit's parent
-        if (hash.isEmpty()) {
-            return;
+        while (!hash.isEmpty()) {
+            Commit commit = fromFile(hash);
+            System.out.println(commit);
+            hash = commit.parentHash;
         }
-        Commit commit = fromFile(hash);
-        System.out.println(commit);
-        printHistory(commit.parentHash);
     }
 
     /**
@@ -81,7 +77,7 @@ public class Commit implements Serializable {
             date = Date.from(Instant.EPOCH);
             branch = "master";
         } else {
-            Commit parent = fromFile("HEAD");
+            Commit parent = fromFile(headHash());
             parentHash = parent.myHash;
             // Update blobs
             blobs = parent.blobs;
@@ -128,7 +124,6 @@ public class Commit implements Serializable {
             commit %s
             Date: %ta %<tb %<te %<tT %<tY %<tz
             %s
-            
             """.formatted(myHash, date, message);
     }
 

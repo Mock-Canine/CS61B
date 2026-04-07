@@ -1,6 +1,7 @@
 package gitlet;
 
 import java.io.File;
+import java.util.Map;
 
 import static gitlet.Utils.*;
 
@@ -62,7 +63,7 @@ public class Repository {
             message("File does not exist.");
             System.exit(0);
         }
-        Commit curr = Commit.fromFile("HEAD");
+        Commit curr = Commit.fromFile(Commit.headHash());
         Index index = Index.fromFile();
 
         byte[] content = readContents(file);
@@ -93,7 +94,7 @@ public class Repository {
 
     public static void rm(String f) {
         isInRepo();
-        Commit curr = Commit.fromFile("HEAD");
+        Commit curr = Commit.fromFile(Commit.headHash());
         Index index = Index.fromFile();
         boolean inCommit = curr.inCommit(f);
         boolean stageForAddition = index.isStaged(f);
@@ -113,7 +114,7 @@ public class Repository {
 
     public static void log() {
         isInRepo();
-        Commit.printHistory("HEAD");
+        Commit.printHistory(Commit.headHash());
     }
 
     public static void globalLog() {
@@ -121,6 +122,18 @@ public class Repository {
         for (String name : plainFilenamesIn(COMMITS_DIR)) {
             Commit commit = Commit.fromFile(name);
             System.out.println(commit);
+        }
+    }
+
+    /**
+     * Handle three usages of checkout
+     * takes a map which may contains keys [branchName, commitId, fileName],
+     */
+    public static void checkout(Map<String, String> args) {
+        // TODO: handle branch later
+        isInRepo();
+        if (args.get("branchName") == null) {
+            String hash = args.get("commitId");
         }
     }
 
