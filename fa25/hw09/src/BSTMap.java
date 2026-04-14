@@ -14,7 +14,39 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
         }
     }
 
-    private class BSTIterator implements Iterator<K>{
+    private class BSTIteratorPre implements Iterator<K> {
+
+        private Stack<BSTNode> keyStack;
+
+        BSTIteratorPre() {
+            keyStack = new Stack<>();
+            pushNoNull(root);
+        }
+
+        private void pushNoNull(BSTNode node) {
+            if (node != null) {
+                keyStack.push(node);
+            }
+        }
+
+        @Override
+        public boolean hasNext() {
+            return !keyStack.isEmpty();
+        }
+
+        @Override
+        public K next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("No element any more");
+            }
+            BSTNode node = keyStack.pop();
+            pushNoNull(node.right);
+            pushNoNull(node.left);
+            return node.key;
+        }
+    }
+
+    private class BSTIterator implements Iterator<K> {
         // Store the whole node
         private Stack<BSTNode> keyStack;
 
@@ -25,14 +57,13 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
 
         /**
          * Push the left-most children of a node into stack,
-         * simulate the recursion of tree iteration
+         * simulate the in-order tree traversal
          */
         private void pushLeft(BSTNode node) {
-            if (node == null) {
-                return;
+            while(node != null) {
+                keyStack.push(node);
+                node = node.left;
             }
-            keyStack.push(node);
-            pushLeft(node.left);
         }
 
         @Override
@@ -48,6 +79,55 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
             }
             BSTNode node = keyStack.pop();
             pushLeft(node.right);
+            return node.key;
+        }
+    }
+
+    private class BSTIteratorPos implements Iterator<K> {
+
+        private Stack<BSTNode> keyStack;
+
+        BSTIteratorPos() {
+            keyStack = new Stack<>();
+            pushToLeaf(root);
+        }
+
+        private void pushToLeaf(BSTNode node) {
+            /* Iteration is simple here, so do not use recursion.
+             * By the way, the stack of postorder can be generated immediately in constructor
+             * using push(node) -> push(node.right) -> push(node.left)
+             * but it will store all the nodes in the stack. while this method will only store
+             * O(H) nodes, H is the height of the tree, and push, pop the stack when next()
+             * get called, which is the purpose of an iterator.(lazy loading, rather than output
+             * all the possible values)
+             */
+            while(node != null) {
+                keyStack.push(node);
+                if (node.left != null) {
+                    node = node.left;
+                } else {
+                    node = node.right;
+                }
+            }
+        }
+
+        @Override
+        public boolean hasNext() {
+            return !keyStack.isEmpty();
+        }
+
+        @Override
+        public K next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("No element any more");
+            }
+            BSTNode node = keyStack.pop();
+            if (hasNext()) {
+                BSTNode parent = keyStack.peek();
+                if (node == parent.left) {
+                    pushToLeaf(parent.right);
+                }
+            }
             return node.key;
         }
     }
@@ -237,6 +317,19 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
 
     @Override
     public Iterator<K> iterator() {
-        return new BSTIterator();
+        return new BSTIteratorPos();
+    }
+
+    void main() {
+        Map61B<Integer, Integer> map = new BSTMap<>();
+        map.put(4, 4);
+        map.put(1, 1);
+        map.put(3, 3);
+        map.put(6, 6);
+        map.put(2, 2);
+        map.put(5, 5);
+        for (Integer k : map) {
+            IO.println(k);
+        }
     }
 }
