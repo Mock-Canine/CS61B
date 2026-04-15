@@ -101,6 +101,10 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
              * get called, which is the purpose of an iterator.(lazy loading, rather than output
              * all the possible values)
              */
+            /* Use the stack to mimic the function invoking frame, push when invoking,
+             * pop when returning.
+             * And the ordering of pushing is pre-order
+             */
             while(node != null) {
                 keyStack.push(node);
                 if (node.left != null) {
