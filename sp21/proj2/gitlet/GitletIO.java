@@ -4,7 +4,9 @@ import java.io.File;
 import java.util.List;
 import static gitlet.FileSystem.*;
 import static gitlet.Main.Abort;
+import static gitlet.Utils.sha1;
 
+// TODO: open some operations to other classes, for example CWD operations
 /**
  * Provide IO operations for gitlet repo, hide the structure detail from the other class
  */
@@ -85,7 +87,7 @@ public class GitletIO {
      * Only need the content, use hash as the name is just the design choice
      */
     public static void saveCommit(byte[] content) {
-        String hash = Utils.sha1((Object) content);
+        String hash = sha1((Object) content);
         File file = Utils.join(COMMITS, hash);
         Utils.writeContents(file, (Object) content);
     }
@@ -140,8 +142,23 @@ public class GitletIO {
         return listFiles(HEADS);
     }
 
+    /* IO for blobs and working directory files */
+    /**
+     * Check whether the file is in the CWD
+     */
+    public static boolean inCWD(String f) {
+        File fp = Utils.join(CWD, f);
+        return fp.exists();
+    }
 
-
+    /**
+     * Save the file in CWD to blobs
+     */
+    public static void saveBlob(String fileHash, byte[] content) {
+        // TODO: a little redundant
+        File blob = Utils.join(BLOBS, fileHash);
+        Utils.writeContents(blob, (Object) content);
+    }
 
     /**
      * Create a directory for filesystem

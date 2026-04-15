@@ -14,46 +14,38 @@ public class Repo {
         makeCommit("initial commit");
     }
 
+    /**
+     * Manipulate staging area for a file
+     */
     public static void add(String f) {
-        isInRepo();
-        File file = join(CWD, f);
-        if (!file.exists()) {
-            message("File does not exist.");
-            System.exit(0);
+        GitletIO.isInRepo();
+        if (!GitletIO.inCWD(f)) {
+            Abort("File does not exist.");
         }
-        Commit curr = Commit.fromFile(Commit.headHash());
+        Commit curr = Commit.fromFile(GitletIO.headHash());
         Index index = Index.fromFile();
-        byte[] content = readContents(file);
-        String fileHash = sha1((Object) content);
-        // File may not be tracked by the commit
-        String blobHash = curr.blobHash(f);
-        // do not use state machine, use rule-based method
-        // And the ADT often support both create or overwrite operation in one function(like remove)
         index.unstageForRemoval(f);
-        if (fileHash.equals(blobHash)) {
+        if (curr.sameAs(f)) {
             index.unstageForAddition(f);
         } else {
-            index.stageForAddition(f, fileHash);
-            File blob = join(BLOBS_DIR, fileHash);
-            writeContents(blob, (Object) content);
+            index.stageForAddition(f);
         }
         index.saveIndex();
     }
 
     public static void commit(String message) {
-        isInRepo();
+        GitletIO.isInRepo();
         makeCommit(message);
     }
 
     public static void rm(String f) {
-        isInRepo();
-        Commit curr = Commit.fromFile(Commit.headHash());
+        GitletIO.isInRepo();
+        Commit curr = Commit.fromFile(GitletIO.headHash());
         Index index = Index.fromFile();
-        boolean inCommit = curr.inCommit(f);
+        boolean inCommit = curr.tracked(f);
         boolean stageForAddition = index.isStaged(f);
         if (!inCommit && !stageForAddition) {
-            message("No reason to remove the file.");
-            System.exit(0);
+            Abort("No reason to remove the file.");
         }
         index.unstageForAddition(f);
         if (inCommit) {
@@ -67,12 +59,12 @@ public class Repo {
 
     public static void log() {
         // TODO: add merge support later
-        isInRepo();
+        GitletIO.isInRepo();
         Commit.printHistory(Commit.headHash());
     }
 
     public static void globalLog() {
-        isInRepo();
+        GitletIO.isInRepo();
         for (String name : plainFilenamesIn(COMMITS_DIR)) {
             Commit commit = Commit.fromFile(name);
             System.out.println(commit);
@@ -80,7 +72,7 @@ public class Repo {
     }
 
     public static void find(String message){
-        isInRepo();
+        GitletIO.isInRepo();
         boolean isFound = false;
         for (String name : plainFilenamesIn(COMMITS_DIR)) {
             Commit commit = Commit.fromFile(name);
@@ -104,30 +96,27 @@ public class Repo {
      * takes a map which may contains keys [branchName, commitId, fileName],
      */
     public static void checkout(Map<String, String> args) {
-        isInRepo();
+        GitletIO.isInRepo();
         String branch = args.get("branchName");
         if (branch == null) {
             String hash = args.get("commitId");
             if (hash == null) {
-                hash = Commit.headHash();
+                hash = GitletIO.headHash();
             }
             String name = args.get("fileName");
             Commit commit = Commit.fromFile(hash);
             String blobHash = commit.blobHash(name);
             if (blobHash == null) {
-                message("File does not exist in that commit.");
-                System.exit(0);
+                Abort("File does not exist in that commit.");
             }
             File blob = join(BLOBS_DIR, blobHash);
             File file = join(CWD, name);
             writeContents(file, (Object) readContents(blob));
         } else {
             if (!plainFilenamesIn(HEADS_DIR).contains(branch)) {
-                message("No such branch exists.");
-                System.exit(0);
+                Abort("No such branch exists.");
             } else if (branch.equals(Commit.head())) {
-                message("No need to checkout the current branch.");
-                System.exit(0);
+                Abort("No need to checkout the current branch.");
             } else {
                 File checkoutBranch = join(HEADS_DIR, branch);
                 String checkoutHash = readContentsAsString(checkoutBranch);
@@ -135,9 +124,8 @@ public class Repo {
                 Commit checkout = Commit.fromFile(checkoutHash);
                 List<String> workFiles = plainFilenamesIn(CWD);
                 for (String f : workFiles) {
-                    if (!curr.inCommit(f) && checkout.inCommit(f)) {
-                        message("There is an untracked file in the way; delete it, or add and commit it first.");
-                        System.exit(0);
+                    if (!curr.tracked(f) && checkout.tracked(f)) {
+                        Abort("There is an untracked file in the way; delete it, or add and commit it first.");
                     }
                 }
                 for (String f : workFiles) {
@@ -159,11 +147,10 @@ public class Repo {
     }
 
     public static void branch(String name) {
-        isInRepo();
+        GitletIO.isInRepo();
         for (String b : plainFilenamesIn(HEADS_DIR)) {
             if (b.equals(name)) {
-                message("A branch with that name already exists.");
-                System.exit(0);
+                Abort("A branch with that name already exists.");
             }
         }
         File newBranch = join(HEADS_DIR, name);
@@ -176,12 +163,5 @@ public class Repo {
     private static void makeCommit(String message) {
         Commit commit = new Commit(message);
         commit.save();
-    }
-
-    private static void isInRepo() {
-        if (!GITLET_DIR.exists()) {
-            message("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
     }
 }

@@ -1,11 +1,15 @@
 package gitlet;
 
+import java.io.File;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Set;
 import java.util.TreeMap;
+
+import static gitlet.FileSystem.CWD;
 import static gitlet.Main.Abort;
+import static gitlet.Utils.sha1;
 
 /**
  * Represents a gitlet commit object.
@@ -88,10 +92,21 @@ public class Commit implements Serializable {
     }
 
     /**
-     * Return whether the file tracked by the commit
+     * Return whether the file is tracked by the commit
      */
-    public boolean inCommit(String name) {
-        return blobs.containsKey(name);
+    public boolean tracked(String f) {
+        return blobs.containsKey(f);
+    }
+
+    /**
+     * Check whether the file in the CWD is the same as in the commit
+     */
+    public boolean sameAs(String f) {
+        File fp = Utils.join(CWD, f);
+        byte[] content = Utils.readContents(fp);
+        String fileHash = sha1((Object) content);
+        String blobHash = blobHash(f);
+        return fileHash.equals(blobHash);
     }
 
     /**

@@ -1,9 +1,13 @@
 package gitlet;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import static gitlet.FileSystem.CWD;
+import static gitlet.Utils.sha1;
 
 /**
  * Represent the content inside index file(staging area)
@@ -33,9 +37,12 @@ public class Index implements Serializable {
     /**
      * Stage file for addition
      */
-    // TODO: the interface need hash as argument? or calculate inside it
-    public void stageForAddition(String name, String hash) {
-        addition.put(name, hash);
+    public void stageForAddition(String f) {
+        File fp = Utils.join(CWD, f);
+        byte[] content = Utils.readContents(fp);
+        String hash = sha1((Object) content);
+        addition.put(f, hash);
+        GitletIO.saveBlob(hash, content);
     }
 
     /**
