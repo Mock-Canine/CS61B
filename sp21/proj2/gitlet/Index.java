@@ -5,8 +5,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import static gitlet.Utils.*;
-
 /**
  * Represent the content inside index file(staging area)
  * Caution: every operation except saveIndex() will not reflect the change
@@ -22,14 +20,14 @@ public class Index implements Serializable {
      * Retrieve content from index file
      */
     public static Index fromFile() {
-        return readObject(Repo.INDEX_FI, Index.class);
+        return GitletIO.getIndex();
     }
 
     /**
      * Create or overwrite index file
      */
     public void saveIndex() {
-        writeObject(Repo.INDEX_FI, this);
+        GitletIO.saveIndex(this);
     }
 
     /**
@@ -82,7 +80,8 @@ public class Index implements Serializable {
     public void updateBlob(Map<String, String> blobs) {
         blobs.putAll(addition);
         blobs.keySet().removeAll(removal);
-        clear();
+        addition.clear();
+        removal.clear();
     }
 
     /**
@@ -92,11 +91,4 @@ public class Index implements Serializable {
         addition.clear();
         removal.clear();
     }
-//    @Override
-//    public String toString() {
-//        return """
-//            === Staged Files ===
-//
-//            """;
-//    }
 }

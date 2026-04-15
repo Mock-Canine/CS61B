@@ -3,7 +3,6 @@ package gitlet;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static gitlet.Utils.*;
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author MockCanine
  */
@@ -14,8 +13,7 @@ public class Main {
      */
     public static void main(String[] args) {
         if (args.length == 0) {
-            message("Please enter a command.");
-            System.exit(0);
+            Abort("Please enter a command.");
         }
         String firstArg = args[0];
         // TODO: Pay attention to format error, not just args number error
@@ -61,8 +59,7 @@ public class Main {
                 Repo.branch(args[1]);
                 break;
             default:
-                message("No command with that name exists.");
-                System.exit(0);
+                Abort("No command with that name exists.");
         }
     }
 
@@ -72,8 +69,7 @@ public class Main {
      */
     public static void validateNumArgs(String[] args, int n) {
         if (args.length != n) {
-            message("Incorrect operands.");
-            System.exit(0);
+            Abort("Incorrect operands.");
         }
     }
 
@@ -92,9 +88,16 @@ public class Main {
         } else if (len == 2) {
             map.put("branchName", args[1]);
         } else {
-            message("Incorrect operands.");
-            System.exit(0);
+            Abort("Incorrect operands.");
         }
         return map;
+    }
+
+    /**
+     * Print message and abort program
+     */
+    public static void Abort(String msg) {
+        Utils.message(msg);
+        System.exit(0);
     }
 }

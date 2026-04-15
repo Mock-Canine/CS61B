@@ -1,13 +1,11 @@
 package gitlet;
 
-import java.io.File;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Set;
 import java.util.TreeMap;
-
-import static gitlet.Utils.*;
+import static gitlet.Main.Abort;
 
 /**
  * Represents a gitlet commit object.
@@ -21,8 +19,8 @@ public class Commit implements Serializable {
     /** The parents of commit. */
     // public transient Commit parent;
     private final String parentHash;
-    /** The hash of the commit, will be set when initialized or retrieved from file */
-    private transient String myHash;
+    /** The hash of the commit, will be set when retrieved from file */
+    private transient String hash;
     /** The blobs tracked by the commit */
     private final TreeMap<String, String> blobs;
 
@@ -34,33 +32,9 @@ public class Commit implements Serializable {
      * Abort the program if provide invalid hash
      */
     public static Commit fromFile(String hash) {
-        if (fullHash(hash) == null) {
-            message("No commit with that id exists.");
-            System.exit(0);
-        }
-        // Retrieve it from objects/commits/
-        File name = join(Repo.COMMITS_DIR, hash);
-        Commit commit = readObject(name, Commit.class);
-        commit.myHash = hash;
+        Commit commit = GitletIO.getCommit(hash);
+        commit.hash = hash;
         return commit;
-    }
-
-    /**
-     * Return the hash of the head of current branch
-     */
-    public static String headHash() {
-        // Return the branch name under refs/heads/ HEAD points to
-        String branch = head();
-        // Return the branch hash
-        File head = join(Repo.HEADS_DIR, branch);
-        return readContentsAsString(head);
-    }
-
-    /**
-     * Return the current branch name
-     */
-    public static String head() {
-        return readContentsAsString(Repo.HEAD_FI);
     }
 
     /**
@@ -78,59 +52,39 @@ public class Commit implements Serializable {
     }
 
     /**
-     * Return the 40 character hash if input represents a commit, null otherwise
-     * @param hash valid format: 4-40 characters long, each represent a
-     *             lower case hex number, without any prefix like 0x, 0X, etc.
-     * With valid format, it should also indicate a unique commit without ambiguity
+     * Save the commit, update branch pointer
      */
-    private static String fullHash(String hash) {
-        if (!hash.matches("^[0-9a-f]{4,40}$")) {
-            return null;
-        }
-        int num = 0;
-        String fullHash = null;
-        for (String f : plainFilenamesIn(Repo.COMMITS_DIR)) {
-            if (f.startsWith(hash)) {
-                num++;
-                fullHash = f;
-            }
-        }
-        if (num == 1) {
-            return fullHash;
-        }
-        return null;
+    public void save() {
+        byte[] serialized = Utils.serialize(this);
+        GitletIO.saveCommit(serialized);
+        String hash = Utils.sha1((Object) serialized);
+        GitletIO.updateBranch(GitletIO.head(), hash);
     }
 
     /**
-     * Create a commit and save it in the filesystem
+     * Create a commit without saving it to filesystem
      */
     public Commit(String message) {
         if (message.isEmpty()) {
-            message("Please enter a commit message.");
-            System.exit(0);
+            Abort("Please enter a commit message.");
         }
         this.message = message;
-        // If no branch inside heads/, treat as initial commit
-        if (plainFilenamesIn(Repo.HEADS_DIR).isEmpty()) {
+        if (GitletIO.branches().isEmpty()) {
             parentHash = "";
             blobs = new TreeMap<>();
             date = Date.from(Instant.EPOCH);
         } else {
-            Commit parent = fromFile(headHash());
-            parentHash = parent.myHash;
-            // Update blobs
+            Commit parent = fromFile(GitletIO.headHash());
+            parentHash = parent.hash;
             blobs = parent.blobs;
             Index index = Index.fromFile();
             if (index.isEmpty()) {
-                message("No changes added to the commit.");
-                System.exit(0);
+                Abort("No changes added to the commit.");
             }
             index.updateBlob(blobs);
             index.saveIndex();
             date = Date.from(Instant.now());
         }
-        // TODO: may be separate
-        saveCommit();
     }
 
     /**
@@ -158,7 +112,7 @@ public class Commit implements Serializable {
      * Return the hash of this commit
      */
     public String getHash() {
-        return myHash;
+        return hash;
     }
 
     public String getMessage() {
@@ -173,25 +127,6 @@ public class Commit implements Serializable {
             commit %s
             Date: %ta %<tb %<te %<tT %<tY %<tz
             %s
-            """.formatted(myHash, date, message);
+            """.formatted(hash, date, message);
     }
-
-    /**
-     * Save the commit to objects/commits/, update the hash in the
-     * refs/heads/branch, and assign the hash field of this commit
-     */
-    // TODO: this may be set private, as long as there is no mutator for the class
-    // TODO: this func does to many things, may shorter
-    private void saveCommit() {
-        byte[] serialized = serialize(this);
-        String hash = sha1((Object) serialized);
-        myHash = hash;
-        // Use hash as the file name
-        File content = join(Repo.COMMITS_DIR, hash);
-        writeContents(content, (Object) serialized);
-        // Overwrite the branch pointer
-        File head = join(Repo.HEADS_DIR, head());
-        writeContents(head, hash);
-    }
-
 }
