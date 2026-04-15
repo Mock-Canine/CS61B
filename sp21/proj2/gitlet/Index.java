@@ -82,10 +82,16 @@ public class Index implements Serializable {
     public void updateBlob(Map<String, String> blobs) {
         blobs.putAll(addition);
         blobs.keySet().removeAll(removal);
+        clear();
+    }
+
+    /**
+     * Clear the staging area
+     */
+    public void clear() {
         addition.clear();
         removal.clear();
     }
-
 //    @Override
 //    public String toString() {
 //        return """

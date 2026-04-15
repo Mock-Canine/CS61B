@@ -82,7 +82,6 @@ public class Main {
      * returns a map which may contains keys [branchName, commitId, fileName],
      */
     public static Map<String, String> parseCheckout(String[] args) {
-        // TODO: handle branch later
         int len = args.length;
         Map<String, String> map = new TreeMap<>();
         if (len == 3 && args[1].equals("--")) {
@@ -90,8 +89,9 @@ public class Main {
         } else if (len == 4 && args[2].equals("--")) {
             map.put("commitId", args[1]);
             map.put("fileName", args[3]);
-        }
-        if (map.isEmpty()) {
+        } else if (len == 2) {
+            map.put("branchName", args[1]);
+        } else {
             message("Incorrect operands.");
             System.exit(0);
         }

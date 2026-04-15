@@ -1,6 +1,7 @@
 package gitlet;
 
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 
 import static gitlet.Utils.*;
@@ -108,6 +109,7 @@ public class Repo {
     }
 
     public static void log() {
+        // TODO: add merge support later
         isInRepo();
         Commit.printHistory(Commit.headHash());
     }
@@ -145,9 +147,9 @@ public class Repo {
      * takes a map which may contains keys [branchName, commitId, fileName],
      */
     public static void checkout(Map<String, String> args) {
-        // TODO: handle branch later
         isInRepo();
-        if (args.get("branchName") == null) {
+        String branch = args.get("branchName");
+        if (branch == null) {
             String hash = args.get("commitId");
             if (hash == null) {
                 hash = Commit.headHash();
@@ -162,6 +164,40 @@ public class Repo {
             File blob = join(BLOBS_DIR, blobHash);
             File file = join(CWD, name);
             writeContents(file, (Object) readContents(blob));
+        } else {
+            if (!plainFilenamesIn(HEADS_DIR).contains(branch)) {
+                message("No such branch exists.");
+                System.exit(0);
+            } else if (branch.equals(Commit.head())) {
+                message("No need to checkout the current branch.");
+                System.exit(0);
+            } else {
+                File checkoutBranch = join(HEADS_DIR, branch);
+                String checkoutHash = readContentsAsString(checkoutBranch);
+                Commit curr = Commit.fromFile(Commit.headHash());
+                Commit checkout = Commit.fromFile(checkoutHash);
+                List<String> workFiles = plainFilenamesIn(CWD);
+                for (String f : workFiles) {
+                    if (!curr.inCommit(f) && checkout.inCommit(f)) {
+                        message("There is an untracked file in the way; delete it, or add and commit it first.");
+                        System.exit(0);
+                    }
+                }
+                for (String f : workFiles) {
+                    restrictedDelete(f);
+                }
+                for (String name : checkout.trackedFiles()) {
+                    File file = join(BLOBS_DIR, checkout.blobHash(name));
+                    File workFile = join(CWD, name);
+                    writeContents(workFile, (Object) readContents(file));
+                }
+                // Change the HEAD
+                writeContents(HEAD_FI, branch);
+                // TODO: may be just overwrite empty thing into the index?
+                Index index = Index.fromFile();
+                index.clear();
+                index.saveIndex();
+            }
         }
     }
 

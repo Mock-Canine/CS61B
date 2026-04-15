@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Set;
 import java.util.TreeMap;
 
 import static gitlet.Utils.*;
@@ -56,12 +57,18 @@ public class Commit implements Serializable {
     }
 
     /**
+     * Return the current branch name
+     */
+    public static String head() {
+        return readContentsAsString(Repo.HEAD_FI);
+    }
+
+    /**
      * Print history a commit, if there are multiple branches,
      * just print the history of current branch and extra merge information
      * @param hash valid commit hash
      */
     public static void printHistory(String hash) {
-        // TODO: add logic for merge later
         // Hit initial commit's parent
         while (!hash.isEmpty()) {
             Commit commit = fromFile(hash);
@@ -141,6 +148,13 @@ public class Commit implements Serializable {
     }
 
     /**
+     * Return the files tracked by the commit
+     */
+    public Set<String> trackedFiles() {
+        return blobs.keySet();
+    }
+
+    /**
      * Return the hash of this commit
      */
     public String getHash() {
@@ -178,10 +192,6 @@ public class Commit implements Serializable {
         // Overwrite the branch pointer
         File head = join(Repo.HEADS_DIR, head());
         writeContents(head, hash);
-    }
-
-    private static String head() {
-        return readContentsAsString(Repo.HEAD_FI);
     }
 
 }
