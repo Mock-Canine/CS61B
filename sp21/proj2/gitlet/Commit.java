@@ -22,8 +22,6 @@ public class Commit implements Serializable {
     private final String parentHash;
     /** The hash of the commit, will be set when initialized or retrieved from file */
     private transient String myHash;
-    /** the branch of the commit */
-    private final String branch;
     /** The blobs tracked by the commit */
     private final TreeMap<String, String> blobs;
 
@@ -51,7 +49,7 @@ public class Commit implements Serializable {
      */
     public static String headHash() {
         // Return the branch name under refs/heads/ HEAD points to
-        String branch = readContentsAsString(Repo.HEAD_FI);
+        String branch = head();
         // Return the branch hash
         File head = join(Repo.HEADS_DIR, branch);
         return readContentsAsString(head);
@@ -110,7 +108,6 @@ public class Commit implements Serializable {
             parentHash = "";
             blobs = new TreeMap<>();
             date = Date.from(Instant.EPOCH);
-            branch = "master";
         } else {
             Commit parent = fromFile(headHash());
             parentHash = parent.myHash;
@@ -124,7 +121,6 @@ public class Commit implements Serializable {
             index.updateBlob(blobs);
             index.saveIndex();
             date = Date.from(Instant.now());
-            branch = parent.branch;
         }
         // TODO: may be separate
         saveCommit();
@@ -179,9 +175,13 @@ public class Commit implements Serializable {
         // Use hash as the file name
         File content = join(Repo.COMMITS_DIR, hash);
         writeContents(content, (Object) serialized);
-        // Create or overwrite the branch pointer
-        File head = join(Repo.HEADS_DIR, branch);
+        // Overwrite the branch pointer
+        File head = join(Repo.HEADS_DIR, head());
         writeContents(head, hash);
+    }
+
+    private static String head() {
+        return readContentsAsString(Repo.HEAD_FI);
     }
 
 }
