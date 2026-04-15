@@ -8,8 +8,8 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import static gitlet.FileSystem.CWD;
+import static gitlet.Utils.*;
 import static gitlet.Main.Abort;
-import static gitlet.Utils.sha1;
 
 /**
  * Represents a gitlet commit object.
@@ -73,7 +73,7 @@ public class Commit implements Serializable {
             Abort("Please enter a commit message.");
         }
         this.message = message;
-        if (GitletIO.branches().isEmpty()) {
+        if (GitletIO.getBranches().isEmpty()) {
             parentHash = "";
             blobs = new TreeMap<>();
             date = Date.from(Instant.EPOCH);

@@ -3,6 +3,7 @@ package gitlet;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+
 import static gitlet.Main.Abort;
 
 public class Repo {
@@ -49,8 +50,7 @@ public class Repo {
         }
         index.unstageForAddition(f);
         if (inCommit) {
-            // Remove from work dir
-            restrictedDelete(f);
+            GitletIO.rmCWD(f);
             index.stageForRemoval(f);
         }
         // TODO: saveIndex every time is like bad feeling
@@ -60,13 +60,13 @@ public class Repo {
     public static void log() {
         // TODO: add merge support later
         GitletIO.isInRepo();
-        Commit.printHistory(Commit.headHash());
+        Commit.printHistory(GitletIO.headHash());
     }
 
     public static void globalLog() {
         GitletIO.isInRepo();
-        for (String name : plainFilenamesIn(COMMITS_DIR)) {
-            Commit commit = Commit.fromFile(name);
+        for (String hash : GitletIO.getCommits()) {
+            Commit commit = Commit.fromFile(hash);
             System.out.println(commit);
         }
     }
@@ -74,16 +74,15 @@ public class Repo {
     public static void find(String message){
         GitletIO.isInRepo();
         boolean isFound = false;
-        for (String name : plainFilenamesIn(COMMITS_DIR)) {
-            Commit commit = Commit.fromFile(name);
+        for (String hash : GitletIO.getCommits()) {
+            Commit commit = Commit.fromFile(hash);
             if (commit.getMessage().equals(message)) {
                 isFound = true;
-                System.out.println(commit.getHash());
+                System.out.println(hash);
             }
         }
         if (!isFound) {
-            message("Found no commit with that message.");
-            System.exit(0);
+            Abort("Found no commit with that message.");
         }
     }
 
@@ -148,13 +147,12 @@ public class Repo {
 
     public static void branch(String name) {
         GitletIO.isInRepo();
-        for (String b : plainFilenamesIn(HEADS_DIR)) {
+        for (String b : GitletIO.getBranches()) {
             if (b.equals(name)) {
                 Abort("A branch with that name already exists.");
             }
         }
-        File newBranch = join(HEADS_DIR, name);
-        writeContents(newBranch, Commit.headHash());
+        GitletIO.updateBranch(name, GitletIO.headHash());
     }
 
     /**

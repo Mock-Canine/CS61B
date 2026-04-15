@@ -92,6 +92,13 @@ public class GitletIO {
         Utils.writeContents(file, (Object) content);
     }
 
+    /**
+     * Returns the hash of all commits in the repo
+     */
+    public static List<String> getCommits() {
+        return listFiles(COMMITS);
+    }
+
     /* IO for index operations, call the corresponding version in Index to get and save */
     public static Index getIndex() {
         return Utils.readObject(INDEX, Index.class);
@@ -138,7 +145,7 @@ public class GitletIO {
     /**
      * Return the branch names of this repo
      */
-    public static List<String> branches() {
+    public static List<String> getBranches() {
         return listFiles(HEADS);
     }
 
@@ -152,21 +159,20 @@ public class GitletIO {
     }
 
     /**
+     * remove file from the CWD
+     */
+    public static void rmCWD(String f) {
+        File fp = Utils.join(CWD, f);
+        Utils.restrictedDelete(fp);
+    }
+
+    /**
      * Save the file in CWD to blobs
      */
     public static void saveBlob(String fileHash, byte[] content) {
         // TODO: a little redundant
         File blob = Utils.join(BLOBS, fileHash);
         Utils.writeContents(blob, (Object) content);
-    }
-
-    /**
-     * Create a directory for filesystem
-     */
-    private static void mkdir(File f) {
-        if (!f.mkdir()) {
-            Abort("Fail to construct gitlet filesystem");
-        }
     }
 
     /**
@@ -179,4 +185,14 @@ public class GitletIO {
         }
         return files;
     }
+
+    /**
+     * Create a directory for filesystem
+     */
+    private static void mkdir(File f) {
+        if (!f.mkdir()) {
+            Abort("Fail to construct gitlet filesystem");
+        }
+    }
+
 }
