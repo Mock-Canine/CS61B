@@ -6,11 +6,11 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import static gitlet.FileSystem.CWD;
 import static gitlet.Utils.sha1;
+import static gitlet.GitletIO.CWD;
 
 /**
- * Represent the content inside index file(staging area)
+ * Represent the staging area
  * Caution: every operation except saveIndex() will not reflect the change
  * to index file, manually invoking is needed after all possible operations.
  */
@@ -42,6 +42,7 @@ public class Index implements Serializable {
         byte[] content = Utils.readContents(fp);
         String hash = sha1((Object) content);
         addition.put(f, hash);
+        // TODO: a little beyond the abstraction
         GitletIO.saveBlob(hash, content);
     }
 
@@ -84,7 +85,7 @@ public class Index implements Serializable {
      * Integrate files tracked by staging areas into a commit, and clear staging areas
      * @param blobs (name, hash) blob map in commit, will mutate the map
      */
-    public void updateBlob(Map<String, String> blobs) {
+    public void clear(Map<String, String> blobs) {
         blobs.putAll(addition);
         blobs.keySet().removeAll(removal);
         addition.clear();
@@ -92,9 +93,9 @@ public class Index implements Serializable {
     }
 
     /**
-     * Clear the staging area
+     * Abandon all the contents in the staging area
      */
-    public void clear() {
+    public void abandon() {
         addition.clear();
         removal.clear();
     }

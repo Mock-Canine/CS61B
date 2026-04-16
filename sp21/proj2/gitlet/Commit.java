@@ -7,9 +7,9 @@ import java.util.Date;
 import java.util.Set;
 import java.util.TreeMap;
 
-import static gitlet.FileSystem.CWD;
 import static gitlet.Utils.*;
 import static gitlet.Main.Abort;
+import static gitlet.GitletIO.CWD;
 
 /**
  * Represents a gitlet commit object.
@@ -68,11 +68,11 @@ public class Commit implements Serializable {
     /**
      * Create a commit without saving it to filesystem
      */
-    public Commit(String message) {
-        if (message.isEmpty()) {
+    public Commit(String msg) {
+        if (msg.isEmpty()) {
             Abort("Please enter a commit message.");
         }
-        this.message = message;
+        message = msg;
         if (GitletIO.getBranches().isEmpty()) {
             parentHash = "";
             blobs = new TreeMap<>();
@@ -85,7 +85,7 @@ public class Commit implements Serializable {
             if (index.isEmpty()) {
                 Abort("No changes added to the commit.");
             }
-            index.updateBlob(blobs);
+            index.clear(blobs);
             index.saveIndex();
             date = Date.from(Instant.now());
         }
@@ -94,26 +94,26 @@ public class Commit implements Serializable {
     /**
      * Return whether the file is tracked by the commit
      */
-    public boolean tracked(String f) {
-        return blobs.containsKey(f);
+    public boolean tracked(String fileName) {
+        return blobs.containsKey(fileName);
     }
 
     /**
      * Check whether the file in the CWD is the same as in the commit
      */
-    public boolean sameAs(String f) {
-        File fp = Utils.join(CWD, f);
+    public boolean sameAs(String fileName) {
+        File fp = Utils.join(CWD, fileName);
         byte[] content = Utils.readContents(fp);
         String fileHash = sha1((Object) content);
-        String blobHash = blobHash(f);
+        String blobHash = blobHash(fileName);
         return fileHash.equals(blobHash);
     }
 
     /**
      * Return hash of the file being tracked, null if not being tracked
      */
-    public String blobHash(String name) {
-        return blobs.get(name);
+    public String blobHash(String fileName) {
+        return blobs.get(fileName);
     }
 
     /**

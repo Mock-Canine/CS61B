@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import static gitlet.Main.Abort;
+import static gitlet.GitletIO.CWD;
 
 public class Repo {
     /**
@@ -96,50 +97,42 @@ public class Repo {
      */
     public static void checkout(Map<String, String> args) {
         GitletIO.isInRepo();
-        String branch = args.get("branchName");
-        if (branch == null) {
-            String hash = args.get("commitId");
-            if (hash == null) {
-                hash = GitletIO.headHash();
+        String branchName = args.get("branchName");
+        if (branchName == null) {
+            String commitId = args.get("commitId");
+            if (commitId == null) {
+                commitId = GitletIO.headHash();
             }
-            String name = args.get("fileName");
-            Commit commit = Commit.fromFile(hash);
-            String blobHash = commit.blobHash(name);
-            if (blobHash == null) {
+            String f = args.get("fileName");
+            Commit commit = Commit.fromFile(commitId);
+            String blobHash = commit.blobHash(f);
+            if (!commit.tracked(f)) {
                 Abort("File does not exist in that commit.");
             }
-            File blob = join(BLOBS_DIR, blobHash);
-            File file = join(CWD, name);
-            writeContents(file, (Object) readContents(blob));
+            GitletIO.writeCWD(f, blobHash);
         } else {
-            if (!plainFilenamesIn(HEADS_DIR).contains(branch)) {
+            if (!GitletIO.getBranches().contains(branchName)) {
                 Abort("No such branch exists.");
-            } else if (branch.equals(Commit.head())) {
+            } else if (branchName.equals(GitletIO.head())) {
                 Abort("No need to checkout the current branch.");
             } else {
-                File checkoutBranch = join(HEADS_DIR, branch);
-                String checkoutHash = readContentsAsString(checkoutBranch);
-                Commit curr = Commit.fromFile(Commit.headHash());
-                Commit checkout = Commit.fromFile(checkoutHash);
-                List<String> workFiles = plainFilenamesIn(CWD);
-                for (String f : workFiles) {
-                    if (!curr.tracked(f) && checkout.tracked(f)) {
+                Commit curr = Commit.fromFile(GitletIO.headHash());
+                Commit checkout = Commit.fromFile(GitletIO.getBranch(branchName));
+                List<String> workFiles = GitletIO.getCWD();
+                for (String fileName : workFiles) {
+                    if (!curr.tracked(fileName) && checkout.tracked(fileName)) {
                         Abort("There is an untracked file in the way; delete it, or add and commit it first.");
                     }
                 }
-                for (String f : workFiles) {
-                    restrictedDelete(f);
+                for (String fileName : workFiles) {
+                    GitletIO.rmCWD(fileName);
                 }
-                for (String name : checkout.trackedFiles()) {
-                    File file = join(BLOBS_DIR, checkout.blobHash(name));
-                    File workFile = join(CWD, name);
-                    writeContents(workFile, (Object) readContents(file));
+                for (String fileName : checkout.trackedFiles()) {
+                    GitletIO.writeCWD(fileName, checkout.blobHash(fileName));
                 }
-                // Change the HEAD
-                writeContents(HEAD_FI, branch);
-                // TODO: may be just overwrite empty thing into the index?
+                GitletIO.setHead(branchName);
                 Index index = Index.fromFile();
-                index.clear();
+                index.abandon();
                 index.saveIndex();
             }
         }
