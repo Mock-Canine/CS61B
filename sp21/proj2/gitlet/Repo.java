@@ -1,11 +1,9 @@
 package gitlet;
 
-import java.io.File;
 import java.util.List;
 import java.util.Map;
 
 import static gitlet.Main.Abort;
-import static gitlet.GitletIO.CWD;
 
 public class Repo {
     /**
@@ -96,6 +94,7 @@ public class Repo {
      * takes a map which may contains keys [branchName, commitId, fileName],
      */
     public static void checkout(Map<String, String> args) {
+        // TODO: may be can be shorter
         GitletIO.isInRepo();
         String branchName = args.get("branchName");
         if (branchName == null) {
@@ -105,7 +104,7 @@ public class Repo {
             }
             String f = args.get("fileName");
             Commit commit = Commit.fromFile(commitId);
-            String blobHash = commit.blobHash(f);
+            String blobHash = commit.fileHash(f);
             if (!commit.tracked(f)) {
                 Abort("File does not exist in that commit.");
             }
@@ -128,7 +127,7 @@ public class Repo {
                     GitletIO.rmCWD(fileName);
                 }
                 for (String fileName : checkout.trackedFiles()) {
-                    GitletIO.writeCWD(fileName, checkout.blobHash(fileName));
+                    GitletIO.writeCWD(fileName, checkout.fileHash(fileName));
                 }
                 GitletIO.setHead(branchName);
                 Index index = Index.fromFile();
@@ -146,6 +145,17 @@ public class Repo {
             }
         }
         GitletIO.updateBranch(name, GitletIO.headHash());
+    }
+
+    public static void rmBranch(String name) {
+        GitletIO.isInRepo();
+        if (!GitletIO.getBranches().contains(name)) {
+            Abort("A branch with that name does not exist.");
+        }
+        if (GitletIO.head().equals(name)) {
+            Abort("Cannot remove the current branch.");
+        }
+        GitletIO.rmBranch(name);
     }
 
     /**

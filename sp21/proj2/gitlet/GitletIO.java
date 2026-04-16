@@ -149,6 +149,11 @@ public class GitletIO {
         return Utils.readContentsAsString(fp);
     }
 
+    public static void rmBranch(String branchName) {
+        File fp = Utils.join(HEADS, branchName);
+        Utils.restrictedDelete(fp);
+    }
+
     /**
      * Return all the branch names of this repo
      */

@@ -105,14 +105,14 @@ public class Commit implements Serializable {
         File fp = Utils.join(CWD, fileName);
         byte[] content = Utils.readContents(fp);
         String fileHash = sha1((Object) content);
-        String blobHash = blobHash(fileName);
+        String blobHash = fileHash(fileName);
         return fileHash.equals(blobHash);
     }
 
     /**
      * Return hash of the file being tracked, null if not being tracked
      */
-    public String blobHash(String fileName) {
+    public String fileHash(String fileName) {
         return blobs.get(fileName);
     }
 
@@ -121,13 +121,6 @@ public class Commit implements Serializable {
      */
     public Set<String> trackedFiles() {
         return blobs.keySet();
-    }
-
-    /**
-     * Return the hash of this commit
-     */
-    public String getHash() {
-        return hash;
     }
 
     public String getMessage() {
