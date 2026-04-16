@@ -36,6 +36,9 @@ public class GitletIO {
     private static final File HEAD = Utils.join(GITLET, "HEAD");
     private static final File INDEX = Utils.join(GITLET, "index");
 
+    /** Initial branch name */
+    private static final String defaultBranch = "master";
+
     /**
      * Init the gitlet filesystem
      */
@@ -51,7 +54,7 @@ public class GitletIO {
         mkdir(BLOBS);
         mkdir(HEADS);
         // Create required files
-        setHead("master");
+        setHead(defaultBranch);
         Index index = new Index();
         index.saveIndex();
     }
@@ -171,6 +174,14 @@ public class GitletIO {
      */
     public static List<String> getBranches() {
         return listFiles(HEADS);
+    }
+
+    /**
+     * Check if a branch has been initialized
+     */
+    public static boolean existBranch() {
+        File fp = Utils.join(HEADS, defaultBranch);
+        return fp.exists();
     }
 
     /**

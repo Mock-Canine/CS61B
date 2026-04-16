@@ -54,7 +54,6 @@ public class Repo {
             GitletIO.rmCWD(f);
             index.stageForRemoval(f);
         }
-        // TODO: saveIndex every time is like bad feeling
         index.saveIndex();
     }
 
@@ -257,6 +256,11 @@ public class Repo {
      */
     private static void makeCommit(String message) {
         Commit commit = new Commit(message);
+        commit.save();
+    }
+
+    private static void mergeCommit(String message, String mergedIn) {
+        Commit commit = Commit.mergeCommit(message, mergedIn);
         commit.save();
     }
 }

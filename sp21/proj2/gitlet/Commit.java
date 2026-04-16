@@ -18,10 +18,9 @@ public class Commit implements Serializable {
     private final String message;
     /** The timestamp of this commit. */
     private final Date date;
-    // TODO: handle multiple parents here
     /** The parents of commit. */
-    // public transient Commit parent;
-    private final String parentHash;
+    private final String parent1Hash;
+    private String parent2Hash;
     /** The hash of the commit, will be set when retrieved from file */
     private transient String hash;
     /** The blobs tracked by the commit */
@@ -41,8 +40,8 @@ public class Commit implements Serializable {
     }
 
     /**
-     * Print history a commit, if there are multiple branches,
-     * just print the history of current branch and extra merge information
+     * Print history a commit, if there are multiple parents,
+     * just print the history of first parent
      * @param hash valid commit hash
      */
     public static void printHistory(String hash) {
@@ -50,35 +49,35 @@ public class Commit implements Serializable {
         while (!hash.isEmpty()) {
             Commit commit = fromFile(hash);
             System.out.println(commit);
-            hash = commit.parentHash;
+            hash = commit.parent1Hash;
         }
     }
 
     /**
-     * Save the commit, update branch pointer
+     * Create a merge commit with merged in branch hash
      */
-    public void save() {
-        byte[] serialized = Utils.serialize(this);
-        GitletIO.saveCommit(serialized);
-        String hash = Utils.sha1((Object) serialized);
-        GitletIO.updateBranch(GitletIO.head(), hash);
+    public static Commit mergeCommit(String msg, String mergedIn) {
+        Commit commit = new Commit(msg);
+        commit.parent2Hash = mergedIn;
+        return commit;
     }
 
     /**
-     * Create a commit without saving it to filesystem
+     * Create a commit(not merge commit), need manual saving
      */
     public Commit(String msg) {
         if (msg.isEmpty()) {
             Abort("Please enter a commit message.");
         }
         message = msg;
-        if (GitletIO.getBranches().isEmpty()) {
-            parentHash = "";
+        parent2Hash = "";
+        if (!GitletIO.existBranch()) {
+            parent1Hash = "";
             blobs = new HashMap<>();
             date = Date.from(Instant.EPOCH);
         } else {
             Commit parent = fromFile(GitletIO.headHash());
-            parentHash = parent.hash;
+            parent1Hash = parent.hash;
             blobs = parent.blobs;
             Index index = Index.fromFile();
             if (index.isEmpty()) {
@@ -129,12 +128,23 @@ public class Commit implements Serializable {
 
     @Override
     public String toString() {
-        // TODO: add logic for merge later
+        String merge = parent2Hash.isEmpty() ? "" : "\nMerge: " + parent1Hash.substring(0, 7)
+                + " " + parent2Hash.substring(0, 7);
         return """
             ===
-            commit %s
+            commit %s%s
             Date: %ta %<tb %<te %<tT %<tY %<tz
             %s
-            """.formatted(hash, date, message);
+            """.formatted(hash, merge, date, message);
+    }
+
+    /**
+     * Save the commit, update branch pointer
+     */
+    public void save() {
+        byte[] serialized = Utils.serialize(this);
+        GitletIO.saveCommit(serialized);
+        String hash = Utils.sha1((Object) serialized);
+        GitletIO.updateBranch(GitletIO.head(), hash);
     }
 }
