@@ -62,6 +62,10 @@ public class Main {
                 validateNumArgs(args, 2);
                 Repo.rmBranch(args[1]);
                 break;
+            case "reset":
+                validateNumArgs(args, 2);
+                Repo.reset(args[1]);
+                break;
             default:
                 Abort("No command with that name exists.");
         }

@@ -115,20 +115,7 @@ public class Repo {
             } else if (branchName.equals(GitletIO.head())) {
                 Abort("No need to checkout the current branch.");
             } else {
-                Commit curr = Commit.fromFile(GitletIO.headHash());
-                Commit checkout = Commit.fromFile(GitletIO.getBranch(branchName));
-                List<String> workFiles = GitletIO.getCWD();
-                for (String fileName : workFiles) {
-                    if (!curr.tracked(fileName) && checkout.tracked(fileName)) {
-                        Abort("There is an untracked file in the way; delete it, or add and commit it first.");
-                    }
-                }
-                for (String fileName : workFiles) {
-                    GitletIO.rmCWD(fileName);
-                }
-                for (String fileName : checkout.trackedFiles()) {
-                    GitletIO.writeCWD(fileName, checkout.fileHash(fileName));
-                }
+                replaceCWD(GitletIO.getBranch(branchName));
                 GitletIO.setHead(branchName);
                 Index index = Index.fromFile();
                 index.abandon();
@@ -156,6 +143,34 @@ public class Repo {
             Abort("Cannot remove the current branch.");
         }
         GitletIO.rmBranch(name);
+    }
+
+    public static void reset(String commitId) {
+        replaceCWD(commitId);
+        GitletIO.updateBranch(GitletIO.head(), commitId);
+        Index index = Index.fromFile();
+        index.abandon();
+        index.saveIndex();
+    }
+
+    /**
+     * Replace files in CWD with files tracked by a commit
+     */
+    private static void replaceCWD(String commitId) {
+        Commit curr = Commit.fromFile(GitletIO.headHash());
+        Commit checkout = Commit.fromFile(commitId);
+        List<String> workFiles = GitletIO.getCWD();
+        for (String fileName : workFiles) {
+            if (!curr.tracked(fileName) && checkout.tracked(fileName)) {
+                Abort("There is an untracked file in the way; delete it, or add and commit it first.");
+            }
+        }
+        for (String fileName : workFiles) {
+            GitletIO.rmCWD(fileName);
+        }
+        for (String fileName : checkout.trackedFiles()) {
+            GitletIO.writeCWD(fileName, checkout.fileHash(fileName));
+        }
     }
 
     /**
