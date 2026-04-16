@@ -1,7 +1,7 @@
 package gitlet;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author MockCanine
@@ -16,7 +16,6 @@ public class Main {
             Abort("Please enter a command.");
         }
         String firstArg = args[0];
-        // TODO: Pay attention to format error, not just args number error
         switch (firstArg) {
             case "init":
                 validateNumArgs(args, 1);
@@ -66,6 +65,10 @@ public class Main {
                 validateNumArgs(args, 2);
                 Repo.reset(args[1]);
                 break;
+            case "merge":
+                validateNumArgs(args, 2);
+                Repo.merge(args[1]);
+                break;
             default:
                 Abort("No command with that name exists.");
         }
@@ -87,7 +90,7 @@ public class Main {
      */
     public static Map<String, String> parseCheckout(String[] args) {
         int len = args.length;
-        Map<String, String> map = new TreeMap<>();
+        Map<String, String> map = new HashMap<>();
         if (len == 3 && args[1].equals("--")) {
             map.put("fileName", args[2]);
         } else if (len == 4 && args[2].equals("--")) {

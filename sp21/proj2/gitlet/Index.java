@@ -2,9 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 
 import static gitlet.Utils.sha1;
 import static gitlet.GitletIO.CWD;
@@ -16,9 +14,9 @@ import static gitlet.GitletIO.CWD;
  */
 public class Index implements Serializable {
     /** Staging area for add containing (name, hash) for blobs. */
-    private final TreeMap<String, String> addition = new TreeMap<>();
+    private final Map<String, String> addition = new HashMap<>();
     /** Staging area for rm containing name for blobs. */
-    private final TreeSet<String> removal = new TreeSet<>();
+    private final Set<String> removal = new HashSet<>();
 
     /**
      * Retrieve content from index file

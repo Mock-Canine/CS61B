@@ -94,7 +94,6 @@ public class Repo {
      * takes a map which may contains keys [branchName, commitId, fileName],
      */
     public static void checkout(Map<String, String> args) {
-        // TODO: may be can be shorter
         GitletIO.isInRepo();
         String branchName = args.get("branchName");
         if (branchName == null) {
@@ -110,7 +109,7 @@ public class Repo {
             }
             GitletIO.writeCWD(f, blobHash);
         } else {
-            if (!GitletIO.getBranches().contains(branchName)) {
+            if (!GitletIO.isBranch(branchName)) {
                 Abort("No such branch exists.");
             } else if (branchName.equals(GitletIO.head())) {
                 Abort("No need to checkout the current branch.");
@@ -126,17 +125,15 @@ public class Repo {
 
     public static void branch(String name) {
         GitletIO.isInRepo();
-        for (String b : GitletIO.getBranches()) {
-            if (b.equals(name)) {
-                Abort("A branch with that name already exists.");
-            }
+        if (GitletIO.isBranch(name)) {
+            Abort("A branch with that name already exists.");
         }
         GitletIO.updateBranch(name, GitletIO.headHash());
     }
 
     public static void rmBranch(String name) {
         GitletIO.isInRepo();
-        if (!GitletIO.getBranches().contains(name)) {
+        if (!GitletIO.isBranch(name)) {
             Abort("A branch with that name does not exist.");
         }
         if (GitletIO.head().equals(name)) {
@@ -153,6 +150,10 @@ public class Repo {
         index.saveIndex();
     }
 
+    public static void merge(String branchName) {
+
+    }
+
     /**
      * Replace files in CWD with files tracked by a commit
      */
@@ -165,7 +166,8 @@ public class Repo {
                 Abort("There is an untracked file in the way; delete it, or add and commit it first.");
             }
         }
-        for (String fileName : workFiles) {
+        // Only delete tracked files, not all workdir files(some files not tracked by both commits)
+        for (String fileName : curr.trackedFiles()) {
             GitletIO.rmCWD(fileName);
         }
         for (String fileName : checkout.trackedFiles()) {

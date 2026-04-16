@@ -4,8 +4,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Date;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 import static gitlet.Utils.*;
 import static gitlet.Main.Abort;
@@ -26,7 +25,7 @@ public class Commit implements Serializable {
     /** The hash of the commit, will be set when retrieved from file */
     private transient String hash;
     /** The blobs tracked by the commit */
-    private final TreeMap<String, String> blobs;
+    private final HashMap<String, String> blobs;
 
     /**
      * Retrieve a commit object from file
@@ -75,7 +74,7 @@ public class Commit implements Serializable {
         message = msg;
         if (GitletIO.getBranches().isEmpty()) {
             parentHash = "";
-            blobs = new TreeMap<>();
+            blobs = new HashMap<>();
             date = Date.from(Instant.EPOCH);
         } else {
             Commit parent = fromFile(GitletIO.headHash());

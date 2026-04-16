@@ -74,33 +74,38 @@ public class GitletIO {
      * Abort the program if provide invalid hash
      */
     public static Commit getCommit(String hash) {
-        if (parsePath(hash) == null) {
+        File fp = parsePath(hash);
+        if (fp == null) {
             Abort("No commit with that id exists.");
         }
-        File fp = Utils.join(COMMITS, hash);
         return Utils.readObject(fp, Commit.class);
     }
 
     /**
-     * Return the 40 character hash if input represents a commit, null otherwise
+     * Return the file pointer if input represents a commit, null otherwise
      * @param hash valid format: 4-40 characters long, each represent a
      *             lower case hex number, without any prefix like 0x, 0X, etc.
      * With valid format, it should also indicate a unique commit without ambiguity
      */
-    private static String parsePath(String hash) {
+    private static File parsePath(String hash) {
         if (!hash.matches("^[0-9a-f]{4,40}$")) {
             return null;
         }
+        if (hash.length() == 40) {
+            File fp = Utils.join(COMMITS, hash);
+            return fp.exists() ? fp : null;
+        }
         int num = 0;
         String fullHash = null;
-        for (String f : listFiles(COMMITS)) {
-            if (f.startsWith(hash)) {
+        // TODO: may change this for better performance
+        for (String commitHash : listFiles(COMMITS)) {
+            if (commitHash.startsWith(hash)) {
                 num++;
-                fullHash = f;
+                fullHash = commitHash;
             }
         }
         if (num == 1) {
-            return fullHash;
+            return Utils.join(COMMITS, fullHash);
         }
         return null;
     }
@@ -139,6 +144,13 @@ public class GitletIO {
     public static void updateBranch(String branchName, String commitHash) {
         File fp = Utils.join(HEADS, branchName);
         Utils.writeContents(fp, commitHash);
+    }
+
+    /**
+     * Check if the name represents a valid branch, in O(1) time
+     */
+    public static boolean isBranch(String branchName) {
+        return Utils.join(HEADS, branchName).exists();
     }
 
     /**
