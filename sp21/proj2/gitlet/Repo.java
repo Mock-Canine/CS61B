@@ -1,7 +1,9 @@
 package gitlet;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static gitlet.Main.Abort;
 
@@ -86,7 +88,45 @@ public class Repo {
     }
 
     public static void status() {
+        GitletIO.isInRepo();
+        Commit commit = Commit.fromFile(GitletIO.headHash());
+        Index index = Index.fromFile();
+        Set<String> files = index.addition();
+        files.addAll(commit.trackedFiles());
+        files.addAll(GitletIO.getCWD());
 
+        List<String> notStaged = new ArrayList<>();
+        List<String> untracked = new ArrayList<>();
+        for (String f : files) {
+            boolean staged = index.isStaged(f);
+            boolean tracked = commit.tracked(f);
+            boolean inCWD = GitletIO.inCWD(f);
+            boolean stagedRm = index.isStagedRm(f);
+            if (inCWD && !staged && (!tracked || stagedRm)) {
+                untracked.add(f);
+                continue;
+            }
+            boolean sameAs = inCWD && commit.sameAs(f);
+            boolean sameInIndex = inCWD && index.sameAs(f);
+
+            boolean caseA = tracked && !sameAs && staged;
+            boolean caseB = staged && !sameInIndex;
+
+            boolean caseC = staged && !inCWD;
+            boolean caseD = !stagedRm && tracked && !inCWD;
+            if (caseA || caseB) {
+                notStaged.add(f + " (modified)");
+            } else if (caseC || caseD) {
+                notStaged.add(f + " (deleted)");
+            }
+        }
+        notStaged.sort(null);
+        untracked.sort(null);
+
+        printBranches();
+        printStagingArea();
+        printNotStaged(notStaged);
+        printUntracked(untracked);
     }
 
     /**
@@ -173,6 +213,43 @@ public class Repo {
         for (String fileName : checkout.trackedFiles()) {
             GitletIO.writeCWD(fileName, checkout.fileHash(fileName));
         }
+    }
+
+    /**
+     * Print view of branches, mark current branch with *
+     */
+    private static void printBranches() {
+        List<String> branches = GitletIO.getBranches();
+        branches.sort(null);
+        String head = GitletIO.head();
+        System.out.println("=== Branches ===");
+        for (String b : branches) {
+            if (b.equals(head)) {
+                System.out.println("*" + b);
+            } else {
+                System.out.println(b);
+            }
+        }
+        System.out.println();
+    }
+
+    private static void printStagingArea() {
+        Index index = Index.fromFile();
+        System.out.println(index);
+    }
+
+    private static void printNotStaged(List<String> src) {
+        System.out.printf("""
+                === Modifications Not Staged For Commit ===
+                %s
+                %n""", String.join("\n", src));
+    }
+
+    private static void printUntracked(List<String> src) {
+        System.out.printf("""
+                === Untracked Files ===
+                %s
+                """, String.join("\n", src));
     }
 
     /**

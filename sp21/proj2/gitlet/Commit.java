@@ -99,6 +99,7 @@ public class Commit implements Serializable {
 
     /**
      * Check whether the file in the CWD is the same as in the commit
+     * Assume file exists
      */
     public boolean sameAs(String fileName) {
         File fp = Utils.join(CWD, fileName);
