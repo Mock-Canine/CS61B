@@ -248,6 +248,14 @@ public class GitletIO {
     }
 
     /**
+     * Return the content of a blob by its hash
+     */
+    public static String getBlob(String blobHash) {
+        File fp = Utils.join(BLOBS, blobHash);
+        return Utils.readContentsAsString(fp);
+    }
+
+    /**
      * Return the file names inside a folder in the gitlet repo
      */
     private static List<String> listFiles(File dir) {

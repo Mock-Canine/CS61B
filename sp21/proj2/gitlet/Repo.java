@@ -190,31 +190,97 @@ public class Repo {
     }
 
     public static void merge(String branchName) {
+        /* Handle exceptions */
         GitletIO.isInRepo();
         if (!GitletIO.isBranch(branchName)) {
             Abort("A branch with that name does not exist.");
         } else if (GitletIO.head().equals(branchName)) {
             Abort("Cannot merge a branch with itself.");
         }
-        Commit curr = Commit.fromFile(GitletIO.headHash());
-        Commit mergedIn = Commit.fromFile(GitletIO.getBranch(branchName));
-        Commit ancestor = latestAncestor(curr, mergedIn);
+        Index index = Index.fromFile();
+        if (!index.isEmpty()) {
+            Abort("You have uncommitted changes.");
+        }
+
         /* Easy cases */
+        Commit curr = Commit.fromFile(GitletIO.headHash());
+        String branchHash = GitletIO.getBranch(branchName);
+        Commit mergedIn = Commit.fromFile(branchHash);
+        Commit ancestor = latestAncestor(curr, mergedIn);
+        untrackedAbort(curr, mergedIn);
         if (ancestor.equals(mergedIn)) {
             Abort("Given branch is an ancestor of the current branch.");
         } else if (ancestor.equals(curr)) {
-            reset(GitletIO.getBranch(branchName));
+            reset(branchHash);
             Abort("Current branch fast-forwarded.");
         }
+
         /* Complex case, compare fileHash between thw three */
         Set<String> fileNames = new HashSet<>();
         fileNames.addAll(curr.trackedFiles());
         fileNames.addAll(mergedIn.trackedFiles());
         fileNames.addAll(ancestor.trackedFiles());
-
+        boolean hasConflict = false;
         for (String f : fileNames) {
-            /* Keep current work: only current branch modify/delete the file */
+            /* Indicate the pair with same file state */
+            boolean currAndMergeIn = sameBlob(curr, mergedIn, f);
+            boolean currAndAncestor = sameBlob(curr, ancestor, f);
+            boolean mergeInAndAncestor = sameBlob(mergedIn, ancestor, f);
+            /* Keep current work:
+             * Only current branch create/modify/delete the file
+             * No change for both of them
+             * */
+            if (mergeInAndAncestor) {
+                continue;
+            }
+            /* Take in other branch's work:
+             * Only other branch create/modify/delete the file
+             * */
+            if (currAndAncestor) {
+                if (mergedIn.tracked(f)) {
+                    GitletIO.writeCWD(f, mergedIn.fileHash(f));
+                    index.stageForAddition(f);
+                } else {
+                    index.stageForRemoval(f);
+                }
+            /* Both change the work */
+            } else {
+                /* Same way change -> nothing to do */
+                /* Different way change */
+                if (!currAndMergeIn) {
+                    conflictFile(curr, mergedIn, f);
+                    index.stageForAddition(f);
+                    hasConflict = true;
+                }
+
+            }
         }
+        index.saveIndex();
+        mergeCommit("Merged" + branchName + "into" + GitletIO.head(), branchHash);
+        if (hasConflict) {
+            System.out.println("Encountered a merge conflict.");
+        }
+    }
+
+    /**
+     * Modify the conflict file content for merge
+     */
+    private static void conflictFile(Commit curr, Commit other, String fileName) {
+        String currFile = "";
+        String otherFile = "";
+        if (curr.tracked(fileName)) {
+            currFile = GitletIO.getBlob(curr.fileHash(fileName));
+        }
+        if (other.tracked(fileName)) {
+            otherFile = GitletIO.getBlob(other.fileHash(fileName));
+        }
+        String content = """
+                <<<<<<< HEAD%s
+                =======%s
+                >>>>>>>
+                """.formatted("\n" + currFile, "\n" + otherFile);
+        File fp = Utils.join(CWD, fileName);
+        Utils.writeContents(fp, content);
     }
 
     /**
@@ -320,18 +386,25 @@ public class Repo {
     private static void replaceCWD(String commitId) {
         Commit curr = Commit.fromFile(GitletIO.headHash());
         Commit checkout = Commit.fromFile(commitId);
-        List<String> workFiles = GitletIO.getCWD();
-        for (String fileName : workFiles) {
-            if (!curr.tracked(fileName) && checkout.tracked(fileName)) {
-                Abort("There is an untracked file in the way; delete it, or add and commit it first.");
-            }
-        }
+        untrackedAbort(curr, checkout);
         // Only delete tracked files, not all workdir files(some files not tracked by both commits)
         for (String fileName : curr.trackedFiles()) {
             GitletIO.rmCWD(fileName);
         }
         for (String fileName : checkout.trackedFiles()) {
             GitletIO.writeCWD(fileName, checkout.fileHash(fileName));
+        }
+    }
+
+    /**
+     * Helper method to check untracked files when merging or checkout
+     */
+    private static void untrackedAbort(Commit curr, Commit other) {
+        List<String> workFiles = GitletIO.getCWD();
+        for (String fileName : workFiles) {
+            if (!curr.tracked(fileName) && other.tracked(fileName)) {
+                Abort("There is an untracked file in the way; delete it, or add and commit it first.");
+            }
         }
     }
 
@@ -379,6 +452,9 @@ public class Repo {
         new Commit(message);
     }
 
+    /**
+     * make merge commit, mergedIn branch hash is needed
+     */
     private static void mergeCommit(String message, String mergedIn) {
         new Commit(message, mergedIn);
     }

@@ -1,14 +1,11 @@
 package gitlet;
 
-import java.io.File;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Date;
 import java.util.*;
 
-import static gitlet.Utils.*;
 import static gitlet.Main.Abort;
-import static gitlet.GitletIO.CWD;
 
 /**
  * Represents a gitlet commit object.
@@ -63,7 +60,7 @@ public class Commit implements Serializable {
     }
 
     /**
-     * Constructor for merge commit
+     * Constructor for merge commit, mergedIn branch hash is needed
      */
     public Commit(String msg, String mergedIn) {
         if (msg.isEmpty()) {
