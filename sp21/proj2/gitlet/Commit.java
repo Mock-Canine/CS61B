@@ -13,6 +13,8 @@ import static gitlet.GitletIO.CWD;
 /**
  * Represents a gitlet commit object.
  */
+// TODO: Avoid null return value in all methods
+// TODO: Check if provide proper methods, some methods may move to other classes
 public class Commit implements Serializable {
     /** The message of this Commit. */
     private final String message;
@@ -98,22 +100,12 @@ public class Commit implements Serializable {
     }
 
     /**
-     * Check whether the file in the CWD is the same as in the commit
-     * Assume file exists
-     */
-    public boolean sameAs(String fileName) {
-        File fp = Utils.join(CWD, fileName);
-        byte[] content = Utils.readContents(fp);
-        String fileHash = sha1((Object) content);
-        String blobHash = fileHash(fileName);
-        return fileHash.equals(blobHash);
-    }
-
-    /**
-     * Return hash of the file being tracked, null if not being tracked
+     * Return hash of the file being tracked, empty string if not tracked
      */
     public String fileHash(String fileName) {
-        return blobs.get(fileName);
+        // Avoid null return value
+        String hash =  blobs.get(fileName);
+        return hash == null ? "" : hash;
     }
 
     /**

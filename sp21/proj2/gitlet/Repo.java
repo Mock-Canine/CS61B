@@ -1,8 +1,11 @@
 package gitlet;
 
+import java.io.File;
 import java.util.*;
 
+import static gitlet.GitletIO.CWD;
 import static gitlet.Main.Abort;
+import static gitlet.Utils.sha1;
 
 public class Repo {
     /**
@@ -24,7 +27,7 @@ public class Repo {
         Commit curr = Commit.fromFile(GitletIO.headHash());
         Index index = Index.fromFile();
         index.unstageForRemoval(f);
-        if (curr.sameAs(f)) {
+        if (sameAs(curr, f)) {
             index.unstageForAddition(f);
         } else {
             index.stageForAddition(f);
@@ -101,7 +104,7 @@ public class Repo {
                 untracked.add(f);
                 continue;
             }
-            boolean sameAs = inCWD && commit.sameAs(f);
+            boolean sameAs = inCWD && sameAs(commit, f);
             boolean sameInIndex = inCWD && index.sameAs(f);
 
             boolean caseA = tracked && !sameAs && staged;
@@ -178,6 +181,7 @@ public class Repo {
     }
 
     public static void reset(String commitId) {
+        GitletIO.isInRepo();
         replaceCWD(commitId);
         GitletIO.updateBranch(GitletIO.head(), commitId);
         Index index = Index.fromFile();
@@ -186,6 +190,38 @@ public class Repo {
     }
 
     public static void merge(String branchName) {
+        GitletIO.isInRepo();
+        if (!GitletIO.isBranch(branchName)) {
+            Abort("A branch with that name does not exist.");
+        } else if (GitletIO.head().equals(branchName)) {
+            Abort("Cannot merge a branch with itself.");
+        }
+        Commit curr = Commit.fromFile(GitletIO.headHash());
+        Commit mergedIn = Commit.fromFile(GitletIO.getBranch(branchName));
+        Commit ancestor = latestAncestor(curr, mergedIn);
+        /* Easy cases */
+        if (ancestor.equals(mergedIn)) {
+            Abort("Given branch is an ancestor of the current branch.");
+        } else if (ancestor.equals(curr)) {
+            reset(GitletIO.getBranch(branchName));
+            Abort("Current branch fast-forwarded.");
+        }
+        /* Complex case, compare fileHash between thw three */
+        Set<String> fileNames = new HashSet<>();
+        fileNames.addAll(curr.trackedFiles());
+        fileNames.addAll(mergedIn.trackedFiles());
+        fileNames.addAll(ancestor.trackedFiles());
+
+        for (String f : fileNames) {
+            /* Keep current work: only current branch modify/delete the file */
+        }
+    }
+
+    /**
+     * Check whether file contents in two commits are the same or untracked.
+     */
+    private static boolean sameBlob(Commit one, Commit other, String fileName) {
+        return one.fileHash(fileName).equals(other.fileHash(fileName));
     }
 
     /**
@@ -240,31 +276,38 @@ public class Repo {
 
     /**
      * Find the latest ancestor for two branch heads in a commit DAG
+     * Take in commit hash
      */
-    private static Commit latestAncestor(Commit one, Commit theOther) {
-        Set<Node> oneAncestors = new HashSet<>();
-        Set<Node> theOtherAncestors = new HashSet<>();
+    private static Commit latestAncestor(Commit one, Commit other) {
+        Set<Node> oneFamily = new HashSet<>();
+        Set<Node> otherFamily = new HashSet<>();
         // Contains operation is slow in PQ, avoid add duplicate items to PQ
         // Construct max heap because Date.compareTo() returns positive for newer date
         Queue<Node> pq = new PriorityQueue<>(
                 Comparator.comparing(Node::timeStamp, Comparator.reverseOrder())
         );
-        pq.add(new Node(one, one));
-        pq.add(new Node(theOther, theOther));
+        Node oneNode = new Node(one, one);
+        Node otherNode = new Node(other, other);
+        // Add the two the set, fix the fast-forward case
+        oneFamily.add(oneNode);
+        otherFamily.add(otherNode);
+        pq.add(oneNode);
+        pq.add(otherNode);
+
         while (true) {
             Node latest = pq.remove();
             // Will triggered by initial commit anyway
-            if (oneAncestors.contains(latest) && theOtherAncestors.contains(latest)) {
+            if (oneFamily.contains(latest) && otherFamily.contains(latest)) {
                 return latest.self;
             }
             List<Node> parents = latest.getParents();
             if (latest.isOffspring(one)) {
-                oneAncestors.addAll(parents);
+                oneFamily.addAll(parents);
             } else {
-                theOtherAncestors.addAll(parents);
+                otherFamily.addAll(parents);
             }
             for (Node parent : parents) {
-                if (!oneAncestors.contains(parent) && !theOtherAncestors.contains(parent)) {
+                if (!oneFamily.contains(parent) && !otherFamily.contains(parent)) {
                     pq.add(parent);
                 }
             }
@@ -338,5 +381,17 @@ public class Repo {
 
     private static void mergeCommit(String message, String mergedIn) {
         new Commit(message, mergedIn);
+    }
+
+    /**
+     * Check whether the file in the CWD is the same as in the commit
+     * Assume file exists
+     */
+    private static boolean sameAs(Commit commit, String fileName) {
+        File fp = Utils.join(CWD, fileName);
+        byte[] content = Utils.readContents(fp);
+        String fileHash = sha1((Object) content);
+        String blobHash = commit.fileHash(fileName);
+        return fileHash.equals(blobHash);
     }
 }
