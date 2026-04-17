@@ -189,17 +189,85 @@ public class Repo {
     }
 
     /**
+     * Helper class for searching latest ancestor
+     */
+    private static class Node {
+        /** Wrap a commit object */
+        public final Commit self;
+        /** Track the offspring(head of branch) */
+        public final Commit offspring;
+
+        public Node(Commit self, Commit offspring) {
+            this.self = self;
+            this.offspring = offspring;
+        }
+
+        /**
+         * Check whether the input is its offspring
+         */
+        public boolean isOffspring(Commit commit) {
+            return commit.equals(offspring);
+        }
+
+        /**
+         * Return the parents wrapper of this commit
+         */
+        public List<Node> getParents() {
+            List<Node> parents = new ArrayList<>();
+            for (String parentHash : self.getParents()) {
+                Commit parent = Commit.fromFile(parentHash);
+                parents.add(new Node(parent, offspring));
+            }
+            return parents;
+        }
+
+        public Date timeStamp() {
+            return self.getDate();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof Node)) {
+                return false;
+            }
+            Node other = (Node) obj;
+            return self.equals(other.self);
+        }
+    }
+
+    /**
      * Find the latest ancestor for two branch heads in a commit DAG
      */
     private static Commit latestAncestor(Commit one, Commit theOther) {
-        Set<Commit> oneAncestor = new HashSet<>();
-        Set<Commit> theOtherAncestor = new HashSet<>();
-        PriorityQueue<Commit> pq = new PriorityQueue<>();
-        pq.add(one);
-        pq.add(theOther);
-        while (!pq.isEmpty()) {
-            Commit node = pq.remove();
-
+        Set<Node> oneAncestors = new HashSet<>();
+        Set<Node> theOtherAncestors = new HashSet<>();
+        // Contains operation is slow in PQ, avoid add duplicate items to PQ
+        // Construct max heap because Date.compareTo() returns positive for newer date
+        Queue<Node> pq = new PriorityQueue<>(
+                Comparator.comparing(Node::timeStamp, Comparator.reverseOrder())
+        );
+        pq.add(new Node(one, one));
+        pq.add(new Node(theOther, theOther));
+        while (true) {
+            Node latest = pq.remove();
+            // Will triggered by initial commit anyway
+            if (oneAncestors.contains(latest) && theOtherAncestors.contains(latest)) {
+                return latest.self;
+            }
+            List<Node> parents = latest.getParents();
+            if (latest.isOffspring(one)) {
+                oneAncestors.addAll(parents);
+            } else {
+                theOtherAncestors.addAll(parents);
+            }
+            for (Node parent : parents) {
+                if (!oneAncestors.contains(parent) && !theOtherAncestors.contains(parent)) {
+                    pq.add(parent);
+                }
+            }
         }
     }
 

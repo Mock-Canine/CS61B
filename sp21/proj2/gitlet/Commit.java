@@ -13,7 +13,7 @@ import static gitlet.GitletIO.CWD;
 /**
  * Represents a gitlet commit object.
  */
-public class Commit implements Serializable, Comparable<Commit> {
+public class Commit implements Serializable {
     /** The message of this Commit. */
     private final String message;
     /** The timestamp of this commit. */
@@ -76,7 +76,8 @@ public class Commit implements Serializable, Comparable<Commit> {
         } else {
             Commit parent = fromFile(GitletIO.headHash());
             parent1Hash = parent.hash;
-            // Cp content, not reference
+            // Cp content, not reference, this can not be detected by test
+            // because the change to parent's blobs will not be saved to file
             blobs = new HashMap<>(parent.blobs);
             Index index = Index.fromFile();
             if (index.isEmpty()) {
@@ -126,6 +127,24 @@ public class Commit implements Serializable, Comparable<Commit> {
         return message;
     }
 
+    public Date getDate() {
+        return date;
+    }
+
+    /**
+     * Return the parents hash
+     */
+    public Set<String> getParents() {
+        Set<String> parents = new TreeSet<>();
+        if (!parent1Hash.isEmpty()) {
+            parents.add(parent1Hash);
+        }
+        if (!parent2Hash.isEmpty()) {
+            parents.add(parent2Hash);
+        }
+        return parents;
+    }
+
     @Override
     public String toString() {
         String merge = parent2Hash.isEmpty() ? "" : "\nMerge: " + parent1Hash.substring(0, 7)
@@ -136,11 +155,6 @@ public class Commit implements Serializable, Comparable<Commit> {
             Date: %ta %<tb %<te %<tT %<tY %<tz
             %s
             """.formatted(hash, merge, date, message);
-    }
-
-    @Override
-    public int compareTo(Commit o) {
-        return date.compareTo(o.date);
     }
 
     @Override
