@@ -1,9 +1,6 @@
 package gitlet;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static gitlet.Main.Abort;
 
@@ -58,7 +55,6 @@ public class Repo {
     }
 
     public static void log() {
-        // TODO: add merge support later
         GitletIO.isInRepo();
         Commit.printHistory(GitletIO.headHash());
     }
@@ -190,7 +186,21 @@ public class Repo {
     }
 
     public static void merge(String branchName) {
+    }
 
+    /**
+     * Find the latest ancestor for two branch heads in a commit DAG
+     */
+    private static Commit latestAncestor(Commit one, Commit theOther) {
+        Set<Commit> oneAncestor = new HashSet<>();
+        Set<Commit> theOtherAncestor = new HashSet<>();
+        PriorityQueue<Commit> pq = new PriorityQueue<>();
+        pq.add(one);
+        pq.add(theOther);
+        while (!pq.isEmpty()) {
+            Commit node = pq.remove();
+
+        }
     }
 
     /**
@@ -252,15 +262,13 @@ public class Repo {
     }
 
     /**
-     * Create a commit object and save it to gitlet filesystem
+     * Create and save a commit automatically
      */
     private static void makeCommit(String message) {
-        Commit commit = new Commit(message);
-        commit.save();
+        new Commit(message);
     }
 
     private static void mergeCommit(String message, String mergedIn) {
-        Commit commit = Commit.mergeCommit(message, mergedIn);
-        commit.save();
+        new Commit(message, mergedIn);
     }
 }

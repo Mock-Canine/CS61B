@@ -13,15 +13,15 @@ import static gitlet.GitletIO.CWD;
 /**
  * Represents a gitlet commit object.
  */
-public class Commit implements Serializable {
+public class Commit implements Serializable, Comparable<Commit> {
     /** The message of this Commit. */
     private final String message;
     /** The timestamp of this commit. */
     private final Date date;
-    /** The parents of commit. */
+    /** The parents of commit. Use empty string for missing parents */
     private final String parent1Hash;
-    private String parent2Hash;
-    /** The hash of the commit, will be set when retrieved from file */
+    private final String parent2Hash;
+    /** The hash of the commit, will be set when retrieved from file or initialized */
     private transient String hash;
     /** The blobs tracked by the commit */
     private final HashMap<String, String> blobs;
@@ -54,23 +54,21 @@ public class Commit implements Serializable {
     }
 
     /**
-     * Create a merge commit with merged in branch hash
+     * Constructor for non-merge commit
      */
-    public static Commit mergeCommit(String msg, String mergedIn) {
-        Commit commit = new Commit(msg);
-        commit.parent2Hash = mergedIn;
-        return commit;
+    public Commit(String msg) {
+        this(msg, "");
     }
 
     /**
-     * Create a commit(not merge commit), need manual saving
+     * Constructor for merge commit
      */
-    public Commit(String msg) {
+    public Commit(String msg, String mergedIn) {
         if (msg.isEmpty()) {
             Abort("Please enter a commit message.");
         }
         message = msg;
-        parent2Hash = "";
+        parent2Hash = mergedIn;
         if (!GitletIO.existBranch()) {
             parent1Hash = "";
             blobs = new HashMap<>();
@@ -78,7 +76,8 @@ public class Commit implements Serializable {
         } else {
             Commit parent = fromFile(GitletIO.headHash());
             parent1Hash = parent.hash;
-            blobs = parent.blobs;
+            // Cp content, not reference
+            blobs = new HashMap<>(parent.blobs);
             Index index = Index.fromFile();
             if (index.isEmpty()) {
                 Abort("No changes added to the commit.");
@@ -87,6 +86,7 @@ public class Commit implements Serializable {
             index.saveIndex();
             date = Date.from(Instant.now());
         }
+        save();
     }
 
     /**
@@ -138,13 +138,31 @@ public class Commit implements Serializable {
             """.formatted(hash, merge, date, message);
     }
 
+    @Override
+    public int compareTo(Commit o) {
+        return date.compareTo(o.date);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Commit)) {
+            return false;
+        }
+        Commit other = (Commit) o;
+        return hash.equals(other.hash);
+    }
+
     /**
-     * Save the commit, update branch pointer
+     * Save the commit, update branch pointer and assign the hash attribute
      */
-    public void save() {
+    private void save() {
         byte[] serialized = Utils.serialize(this);
         GitletIO.saveCommit(serialized);
         String hash = Utils.sha1((Object) serialized);
+        this.hash = hash;
         GitletIO.updateBranch(GitletIO.head(), hash);
     }
 }
