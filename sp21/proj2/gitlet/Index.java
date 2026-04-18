@@ -9,13 +9,15 @@ import static gitlet.GitletIO.CWD;
 
 /**
  * Represent the staging area
- * Caution: every operation except saveIndex() will not reflect the change
- * to index file, manually invoking is needed after all possible operations.
+ * Caution: any operation except saveIndex(), resetIndex() will not reflect the change
+ * to index file.
+ * In other words, after all possible operations of adding/removing files from staging area or
+ * making a commit operation, manually saving is needed.
  */
 public class Index implements Serializable {
     /** Staging area for add containing (name, hash) for blobs. */
     private final Map<String, String> addition = new HashMap<>();
-    /** Staging area for rm containing name for blobs. */
+    /** Staging area for remove containing name for blobs. */
     private final Set<String> removal = new HashSet<>();
 
     /**
@@ -26,9 +28,9 @@ public class Index implements Serializable {
     }
 
     /**
-     * init empty staging area and save to file
+     * Clear staging area to empty and save to file
      */
-    public static void initIndex() {
+    public static void resetIndex() {
         Index index = new Index();
         index.saveIndex();
     }
@@ -42,13 +44,13 @@ public class Index implements Serializable {
 
     /**
      * Stage file for addition
+     * Assume file exists in CWD
      */
-    public void stageForAddition(String f) {
-        File fp = Utils.join(CWD, f);
+    public void stageForAddition(String fileName) {
+        File fp = Utils.join(CWD, fileName);
         byte[] content = Utils.readContents(fp);
         String hash = sha1((Object) content);
-        addition.put(f, hash);
-        // TODO: a little beyond the abstraction
+        addition.put(fileName, hash);
         GitletIO.saveBlob(hash, content);
     }
 
@@ -88,19 +90,12 @@ public class Index implements Serializable {
     }
 
     /**
-     * Integrate files tracked by staging areas into a commit, and clear staging areas
+     * Integrate files in staging areas into a commit, and clear staging areas
      * @param blobs (name, hash) blob map in commit, will mutate the map
      */
-    public void clear(Map<String, String> blobs) {
+    public void commit(Map<String, String> blobs) {
         blobs.putAll(addition);
         blobs.keySet().removeAll(removal);
-        abandon();
-    }
-
-    /**
-     * Abandon all the contents in the staging area
-     */
-    public void abandon() {
         addition.clear();
         removal.clear();
     }

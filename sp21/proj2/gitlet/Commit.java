@@ -28,15 +28,27 @@ public class Commit implements Serializable {
     /* Methods for retrieve and save commit object from/to filesystem */
     /**
      * Retrieve a commit object from file
-     * @param hash valid format: 4-40 characters long, each represent a
+     * @param commitHash valid format: 4-40 characters long, each represent a
      *             lower case hex number, without any prefix like 0x, 0X, etc.
      * With valid format, it should also indicate a unique commit without ambiguity
      * Abort the program if provide invalid hash
      */
-    public static Commit fromFile(String hash) {
-        Commit commit = GitletIO.getCommit(hash);
-        commit.hash = hash;
+    public static Commit fromFile(String commitHash) {
+        Commit commit = GitletIO.getCommit(commitHash);
+        commit.hash = commitHash;
         return commit;
+    }
+
+    /**
+     * Print history of a commit, if there are multiple parents,
+     * just print the history of first parent
+     */
+    public static void printHistory(String commitHash) {
+        while (!commitHash.isEmpty()) {
+            Commit commit = Commit.fromFile(commitHash);
+            System.out.println(commit);
+            commitHash = commit.parent1Hash;
+        }
     }
 
     /**
@@ -45,18 +57,6 @@ public class Commit implements Serializable {
     public void save() {
         byte[] serialized = Utils.serialize(this);
         GitletIO.saveCommit(serialized);
-    }
-
-    /**
-     * Print history of a commit, if there are multiple parents,
-     * just print the history of first parent
-     */
-    public static void printHistory(String hash) {
-        while (!hash.isEmpty()) {
-            Commit commit = Commit.fromFile(hash);
-            System.out.println(commit);
-            hash = commit.parent1Hash;
-        }
     }
 
     /* Constructors */
@@ -96,7 +96,7 @@ public class Commit implements Serializable {
     /**
      * Return whether the file is tracked by the commit
      */
-    public boolean tracked(String fileName) {
+    public boolean isTracked(String fileName) {
         return blobs.containsKey(fileName);
     }
 
@@ -113,6 +113,7 @@ public class Commit implements Serializable {
      * Return the file names tracked by the commit
      */
     public Set<String> trackedFiles() {
+        // Cp content, not the reference
         return new HashSet<>(blobs.keySet());
     }
 

@@ -5,9 +5,6 @@ import java.util.List;
 import static gitlet.Main.Abort;
 import static gitlet.Utils.sha1;
 
-// TODO: three improvement -> use hash or content as the contract for this class, not the file name,
-// TODO: delete the 1 time usage helper method
-// TODO: all methods have pre-condition, valid parameters
 /** Represents gitlet repository filesystem and provide IO operations
  * .gitlet/ filesystem
  * .gitlet/ -- gitlet repository
@@ -52,7 +49,7 @@ public class GitletIO {
         mkdir(BLOBS);
         mkdir(HEADS);
         // Create clean staging area
-        Index.initIndex();
+        Index.resetIndex();
     }
 
     /**
@@ -67,13 +64,13 @@ public class GitletIO {
     /* IO for commit operations, call the corresponding version in Commit to get and save */
     /**
      * Retrieve a commit object from file
-     * @param hash valid format: 4-40 characters long, each represent a
+     * @param commitHash valid format: 4-40 characters long, each represent a
      *             lower case hex number, without any prefix like 0x, 0X, etc.
      * With valid format, it should also indicate a unique commit without ambiguity
      * Abort the program if provide invalid hash
      */
-    public static Commit getCommit(String hash) {
-        File fp = parsePath(hash);
+    public static Commit getCommit(String commitHash) {
+        File fp = parsePath(commitHash);
         if (fp == null) {
             Abort("No commit with that id exists.");
         }
@@ -96,7 +93,6 @@ public class GitletIO {
         }
         int num = 0;
         String fullHash = null;
-        // TODO: may change this for better performance
         for (String commitHash : listFiles(COMMITS)) {
             if (commitHash.startsWith(hash)) {
                 num++;
@@ -110,10 +106,10 @@ public class GitletIO {
     }
 
     /**
-     * Save the serialized object content to filesystem
-     * Only need the content, use hash as the name is just the design choice
+     * Save the serialized commit object to filesystem
      */
     public static void saveCommit(byte[] content) {
+        // Only need the content as param, use hash as the name is just the design choice
         String hash = sha1((Object) content);
         File fp = Utils.join(COMMITS, hash);
         Utils.writeContents(fp, (Object) content);
@@ -137,8 +133,9 @@ public class GitletIO {
 
     /* IO for branch operations */
     /**
-     * Update the branch pointer to a commit
-     * Create new branch if not exists
+     * Update the branch pointer to a commit.
+     * Create new branch if not exists.
+     * Assume valid commitHash.
      */
     public static void updateBranch(String branchName, String commitHash) {
         File fp = Utils.join(HEADS, branchName);
@@ -146,9 +143,10 @@ public class GitletIO {
     }
 
     /**
-     * Check if the name represents a valid branch, in O(1) time
+     * Check if the name represents a valid branch
      */
     public static boolean isBranch(String branchName) {
+        // Do not use listFiles(), this is in O(1) time
         return Utils.join(HEADS, branchName).exists();
     }
 
@@ -179,6 +177,7 @@ public class GitletIO {
 
     /**
      * Set head pointer to the branch
+     * Assume branchName is valid
      */
     public static void setHead(String branchName) {
         Utils.writeContents(HEAD, branchName);
@@ -216,7 +215,7 @@ public class GitletIO {
     }
 
     /**
-     * create or overwrite file in the CWD with a file tracked by the commit
+     * create or overwrite file in the CWD with a file tracked by a commit
      */
     public static void writeCWD(String fileName, String blobHash) {
         File bp = Utils.join(BLOBS, blobHash);
@@ -235,7 +234,6 @@ public class GitletIO {
      * Save the file in CWD to blobs
      */
     public static void saveBlob(String fileHash, byte[] content) {
-        // TODO: a little redundant
         File blob = Utils.join(BLOBS, fileHash);
         Utils.writeContents(blob, (Object) content);
     }

@@ -22,40 +22,46 @@ public class Repo {
     }
 
     /**
-     * Manipulate staging area for a file
+     * Add a file to staging area
      */
-    public static void add(String f) {
-        if (!GitletIO.inCWD(f)) {
+    public static void add(String fileName) {
+        if (!GitletIO.inCWD(fileName)) {
             Abort("File does not exist.");
         }
         Commit curr = Commit.fromFile(GitletIO.headHash());
         Index index = Index.fromFile();
-        index.unstageForRemoval(f);
-        if (sameAs(curr, f)) {
-            index.unstageForAddition(f);
+        index.unstageForRemoval(fileName);
+        if (sameAs(curr, fileName)) {
+            index.unstageForAddition(fileName);
         } else {
-            index.stageForAddition(f);
+            index.stageForAddition(fileName);
         }
         index.saveIndex();
     }
 
+    /**
+     * Make a commit
+     */
     public static void commit(String message) {
         String hash = makeCommit(message, "");
         GitletIO.updateBranch(GitletIO.head(), hash);
     }
 
-    public static void rm(String f) {
+    /**
+     * Remove a file from staging area
+     */
+    public static void rm(String fileName) {
         Commit curr = Commit.fromFile(GitletIO.headHash());
         Index index = Index.fromFile();
-        boolean inCommit = curr.tracked(f);
-        boolean stageForAddition = index.isStaged(f);
-        if (!inCommit && !stageForAddition) {
+        boolean isTracked = curr.isTracked(fileName);
+        boolean isStaged = index.isStaged(fileName);
+        if (!isTracked && !isStaged) {
             Abort("No reason to remove the file.");
         }
-        index.unstageForAddition(f);
-        if (inCommit) {
-            GitletIO.rmCWD(f);
-            index.stageForRemoval(f);
+        index.unstageForAddition(fileName);
+        if (isTracked) {
+            GitletIO.rmCWD(fileName);
+            index.stageForRemoval(fileName);
         }
         index.saveIndex();
     }
@@ -96,39 +102,37 @@ public class Repo {
         Map<String, String> params = parseCheckout(args);
         String branchName = params.get("branchName");
         if (branchName == null) {
-            String commitId = params.get("commitId");
-            if (commitId == null) {
-                commitId = GitletIO.headHash();
+            String commitHash = params.get("commitHash");
+            if (commitHash == null) {
+                commitHash = GitletIO.headHash();
             }
-            checkoutFile(commitId, params.get("fileName"));
+            checkoutFile(commitHash, params.get("fileName"));
         } else {
             checkoutBranch(branchName);
         }
     }
 
-    public static void branch(String name) {
-        if (GitletIO.isBranch(name)) {
+    public static void branch(String branchName) {
+        if (GitletIO.isBranch(branchName)) {
             Abort("A branch with that name already exists.");
         }
-        GitletIO.updateBranch(name, GitletIO.headHash());
+        GitletIO.updateBranch(branchName, GitletIO.headHash());
     }
 
-    public static void rmBranch(String name) {
-        if (!GitletIO.isBranch(name)) {
+    public static void rmBranch(String branchName) {
+        if (!GitletIO.isBranch(branchName)) {
             Abort("A branch with that name does not exist.");
         }
-        if (GitletIO.head().equals(name)) {
+        if (GitletIO.head().equals(branchName)) {
             Abort("Cannot remove the current branch.");
         }
-        GitletIO.rmBranch(name);
+        GitletIO.rmBranch(branchName);
     }
 
-    public static void reset(String commitId) {
-        replaceCWD(commitId);
-        GitletIO.updateBranch(GitletIO.head(), commitId);
-        Index index = Index.fromFile();
-        index.abandon();
-        index.saveIndex();
+    public static void reset(String commitHash) {
+        replaceCWD(commitHash);
+        GitletIO.updateBranch(GitletIO.head(), commitHash);
+        Index.resetIndex();
     }
 
     public static void merge(String branchName) {
@@ -156,7 +160,7 @@ public class Repo {
             Abort("Current branch fast-forwarded.");
         }
 
-        /* Complex case, compare fileHash between thw three */
+        /* Complex case, compare fileHash between the three */
         Set<String> fileNames = new HashSet<>();
         fileNames.addAll(curr.trackedFiles());
         fileNames.addAll(mergedIn.trackedFiles());
@@ -178,7 +182,7 @@ public class Repo {
              * Only other branch create/modify/delete the file
              * */
             if (currAndAncestor) {
-                if (mergedIn.tracked(f)) {
+                if (mergedIn.isTracked(f)) {
                     GitletIO.writeCWD(f, mergedIn.fileHash(f));
                     index.stageForAddition(f);
                 } else {
@@ -196,6 +200,8 @@ public class Repo {
 
             }
         }
+        // Necessary, because manipulating staging area + make commit will happen in one command,
+        // but makeCommit() will retrieve index from file
         index.saveIndex();
         String hash = makeCommit("Merged" + branchName + "into" + GitletIO.head(), branchHash);
         GitletIO.updateBranch(GitletIO.head(), hash);
@@ -209,7 +215,7 @@ public class Repo {
      */
     private static void conflictFile(Commit curr, Commit other, String fileName) {
         String content = "";
-        if (curr.tracked(fileName)) {
+        if (curr.isTracked(fileName)) {
             content += """
                 <<<<<<< HEAD
                 %s
@@ -219,7 +225,7 @@ public class Repo {
                 <<<<<<< HEAD
                 """;
         }
-        if (other.tracked(fileName)) {
+        if (other.isTracked(fileName)) {
             content += """
                 =======
                 %s
@@ -247,12 +253,12 @@ public class Repo {
      */
     private static class Node {
         /** Wrap a commit object */
-        public final Commit self;
+        public final Commit commit;
         /** Track the offspring(head of branch) */
         public final Commit offspring;
 
-        public Node(Commit self, Commit offspring) {
-            this.self = self;
+        public Node(Commit commit, Commit offspring) {
+            this.commit = commit;
             this.offspring = offspring;
         }
 
@@ -268,7 +274,7 @@ public class Repo {
          */
         public List<Node> getParents() {
             List<Node> parents = new ArrayList<>();
-            for (String parentHash : self.getParents()) {
+            for (String parentHash : commit.getParents()) {
                 Commit parent = Commit.fromFile(parentHash);
                 parents.add(new Node(parent, offspring));
             }
@@ -276,7 +282,7 @@ public class Repo {
         }
 
         public Date timeStamp() {
-            return self.getDate();
+            return commit.getDate();
         }
 
         @Override
@@ -288,13 +294,12 @@ public class Repo {
                 return false;
             }
             Node other = (Node) obj;
-            return self.equals(other.self);
+            return commit.equals(other.commit);
         }
     }
 
     /**
-     * Find the latest ancestor for two branch heads in a commit DAG
-     * Take in commit hash
+     * Find the latest ancestor for two commits in a commit DAG
      */
     private static Commit latestAncestor(Commit one, Commit other) {
         Set<Node> oneFamily = new HashSet<>();
@@ -306,7 +311,6 @@ public class Repo {
         );
         Node oneNode = new Node(one, one);
         Node otherNode = new Node(other, other);
-        // Add the two the set, fix the fast-forward case
         oneFamily.add(oneNode);
         otherFamily.add(otherNode);
         pq.add(oneNode);
@@ -316,7 +320,7 @@ public class Repo {
             Node latest = pq.remove();
             // Will triggered by initial commit anyway
             if (oneFamily.contains(latest) && otherFamily.contains(latest)) {
-                return latest.self;
+                return latest.commit;
             }
             List<Node> parents = latest.getParents();
             if (latest.isOffspring(one)) {
@@ -335,9 +339,9 @@ public class Repo {
     /**
      * Replace files in CWD with files tracked by a commit
      */
-    private static void replaceCWD(String commitId) {
+    private static void replaceCWD(String commitHash) {
         Commit curr = Commit.fromFile(GitletIO.headHash());
-        Commit checkout = Commit.fromFile(commitId);
+        Commit checkout = Commit.fromFile(commitHash);
         untrackedAbort(curr, checkout);
         // Only delete tracked files, not all workdir files(some files not tracked by both commits)
         for (String fileName : curr.trackedFiles()) {
@@ -354,7 +358,7 @@ public class Repo {
     private static void untrackedAbort(Commit curr, Commit other) {
         List<String> workFiles = GitletIO.getCWD();
         for (String fileName : workFiles) {
-            if (!curr.tracked(fileName) && other.tracked(fileName)) {
+            if (!curr.isTracked(fileName) && other.isTracked(fileName)) {
                 Abort("There is an untracked file in the way; delete it, or add and commit it first.");
             }
         }
@@ -421,7 +425,7 @@ public class Repo {
         if (index.isEmpty()) {
             Abort("No changes added to the commit.");
         }
-        index.clear(blobs);
+        index.commit(blobs);
         index.saveIndex();
         Commit commit;
         if (!mergedIn.isEmpty()) {
@@ -447,7 +451,7 @@ public class Repo {
 
     /**
      * Parse the arguments for checkout command,
-     * returns a map which may contains keys [branchName, commitId, fileName],
+     * returns a map which may contains keys [branchName, commitHash, fileName],
      */
     private static Map<String, String> parseCheckout(String[] args) {
         int len = args.length;
@@ -455,7 +459,7 @@ public class Repo {
         if (len == 3 && args[1].equals("--")) {
             map.put("fileName", args[2]);
         } else if (len == 4 && args[2].equals("--")) {
-            map.put("commitId", args[1]);
+            map.put("commitHash", args[1]);
             map.put("fileName", args[3]);
         } else if (len == 2) {
             map.put("branchName", args[1]);
@@ -465,10 +469,10 @@ public class Repo {
         return map;
     }
 
-    private static void checkoutFile(String commitId, String fileName) {
-        Commit commit = Commit.fromFile(commitId);
+    private static void checkoutFile(String commitHash, String fileName) {
+        Commit commit = Commit.fromFile(commitHash);
         String blobHash = commit.fileHash(fileName);
-        if (!commit.tracked(fileName)) {
+        if (!commit.isTracked(fileName)) {
             Abort("File does not exist in that commit.");
         }
         GitletIO.writeCWD(fileName, blobHash);
@@ -482,9 +486,7 @@ public class Repo {
         } else {
             replaceCWD(GitletIO.getBranch(branchName));
             GitletIO.setHead(branchName);
-            Index index = Index.fromFile();
-            index.abandon();
-            index.saveIndex();
+            Index.resetIndex();
         }
     }
 }
