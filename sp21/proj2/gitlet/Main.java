@@ -10,7 +10,7 @@ public class Main {
      */
     public static void main(String[] args) {
         if (args.length == 0) {
-            Abort("Please enter a command.");
+            abort("Please enter a command.");
         }
         String firstArg = args[0];
         switch (firstArg) {
@@ -78,7 +78,7 @@ public class Main {
                 Repo.merge(args[1]);
                 break;
             default:
-                Abort("No command with that name exists.");
+                abort("No command with that name exists.");
         }
     }
 
@@ -88,14 +88,14 @@ public class Main {
      */
     public static void validateNumArgs(String[] args, int n) {
         if (args.length != n) {
-            Abort("Incorrect operands.");
+            abort("Incorrect operands.");
         }
     }
 
     /**
      * Print message and abort program
      */
-    public static void Abort(String msg) {
+    public static void abort(String msg) {
         Utils.message(msg);
         System.exit(0);
     }

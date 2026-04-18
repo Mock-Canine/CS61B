@@ -2,7 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.util.List;
-import static gitlet.Main.Abort;
+import static gitlet.Main.abort;
 import static gitlet.Utils.sha1;
 
 /** Represents gitlet repository filesystem and provide IO operations
@@ -39,7 +39,7 @@ public class GitletIO {
      */
     public static void initFilesystem() {
         if (GITLET.exists()) {
-            Abort("A Gitlet version-control system already exists in the current directory.");
+            abort("A Gitlet version-control system already exists in the current directory.");
         }
         // Create required folders, order of creating matters
         mkdir(GITLET);
@@ -57,11 +57,13 @@ public class GitletIO {
      */
     public static void isInRepo() {
         if (!GITLET.exists()) {
-            Abort("Not in an initialized Gitlet directory.");
+            abort("Not in an initialized Gitlet directory.");
         }
     }
 
     /* IO for commit operations, call the corresponding version in Commit to get and save */
+    private static final int HASH_LEN = 40;
+
     /**
      * Retrieve a commit object from file
      * @param commitHash valid format: 4-40 characters long, each represent a
@@ -72,7 +74,7 @@ public class GitletIO {
     public static Commit getCommit(String commitHash) {
         File fp = parsePath(commitHash);
         if (fp == null) {
-            Abort("No commit with that id exists.");
+            abort("No commit with that id exists.");
         }
         return Utils.readObject(fp, Commit.class);
     }
@@ -87,7 +89,7 @@ public class GitletIO {
         if (!hash.matches("^[0-9a-f]{4,40}$")) {
             return null;
         }
-        if (hash.length() == 40) {
+        if (hash.length() == HASH_LEN) {
             File fp = Utils.join(COMMITS, hash);
             return fp.exists() ? fp : null;
         }
@@ -252,7 +254,7 @@ public class GitletIO {
     private static List<String> listFiles(File dir) {
         List<String> files = Utils.plainFilenamesIn(dir);
         if (files == null) {
-            Abort("File system is broken, init a new gitlet repo!");
+            abort("File system is broken, init a new gitlet repo!");
         }
         return files;
     }
@@ -262,7 +264,7 @@ public class GitletIO {
      */
     private static void mkdir(File dir) {
         if (!dir.mkdir()) {
-            Abort("Fail to construct gitlet filesystem");
+            abort("Fail to construct gitlet filesystem");
         }
     }
 

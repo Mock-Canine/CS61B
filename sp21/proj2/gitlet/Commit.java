@@ -105,8 +105,8 @@ public class Commit implements Serializable {
      */
     public String fileHash(String fileName) {
         // Avoid null return value
-        String hash =  blobs.get(fileName);
-        return hash == null ? "" : hash;
+        String fileHash =  blobs.get(fileName);
+        return fileHash == null ? "" : fileHash;
     }
 
     /**

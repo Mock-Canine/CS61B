@@ -4,19 +4,19 @@ import java.io.File;
 import java.util.*;
 
 import static gitlet.GitletIO.CWD;
-import static gitlet.Main.Abort;
+import static gitlet.Main.abort;
 import static gitlet.Utils.sha1;
 
 public class Repo {
     /** Initial branch name */
-    public static final String defaultBranch = "master";
+    public static final String DEFAULT_BRANCH = "master";
 
     /**
      * Init gitlet repo and make initial commit
      */
     public static void init() {
         GitletIO.initFilesystem();
-        GitletIO.setHead(defaultBranch);
+        GitletIO.setHead(DEFAULT_BRANCH);
         String hash = initialCommit();
         GitletIO.updateBranch(GitletIO.head(), hash);
     }
@@ -26,7 +26,7 @@ public class Repo {
      */
     public static void add(String fileName) {
         if (!GitletIO.inCWD(fileName)) {
-            Abort("File does not exist.");
+            abort("File does not exist.");
         }
         Commit curr = Commit.fromFile(GitletIO.headHash());
         Index index = Index.fromFile();
@@ -56,7 +56,7 @@ public class Repo {
         boolean isTracked = curr.isTracked(fileName);
         boolean isStaged = index.isStaged(fileName);
         if (!isTracked && !isStaged) {
-            Abort("No reason to remove the file.");
+            abort("No reason to remove the file.");
         }
         index.unstageForAddition(fileName);
         if (isTracked) {
@@ -77,7 +77,7 @@ public class Repo {
         }
     }
 
-    public static void find(String message){
+    public static void find(String message) {
         boolean isFound = false;
         for (String hash : GitletIO.getCommits()) {
             Commit commit = Commit.fromFile(hash);
@@ -87,7 +87,7 @@ public class Repo {
             }
         }
         if (!isFound) {
-            Abort("Found no commit with that message.");
+            abort("Found no commit with that message.");
         }
     }
 
@@ -114,17 +114,17 @@ public class Repo {
 
     public static void branch(String branchName) {
         if (GitletIO.isBranch(branchName)) {
-            Abort("A branch with that name already exists.");
+            abort("A branch with that name already exists.");
         }
         GitletIO.updateBranch(branchName, GitletIO.headHash());
     }
 
     public static void rmBranch(String branchName) {
         if (!GitletIO.isBranch(branchName)) {
-            Abort("A branch with that name does not exist.");
+            abort("A branch with that name does not exist.");
         }
         if (GitletIO.head().equals(branchName)) {
-            Abort("Cannot remove the current branch.");
+            abort("Cannot remove the current branch.");
         }
         GitletIO.rmBranch(branchName);
     }
@@ -138,13 +138,13 @@ public class Repo {
     public static void merge(String branchName) {
         /* Handle exceptions */
         if (!GitletIO.isBranch(branchName)) {
-            Abort("A branch with that name does not exist.");
+            abort("A branch with that name does not exist.");
         } else if (GitletIO.head().equals(branchName)) {
-            Abort("Cannot merge a branch with itself.");
+            abort("Cannot merge a branch with itself.");
         }
         Index index = Index.fromFile();
         if (!index.isEmpty()) {
-            Abort("You have uncommitted changes.");
+            abort("You have uncommitted changes.");
         }
 
         /* Easy cases */
@@ -154,10 +154,10 @@ public class Repo {
         Commit ancestor = latestAncestor(curr, mergedIn);
         untrackedAbort(curr, mergedIn);
         if (ancestor.equals(mergedIn)) {
-            Abort("Given branch is an ancestor of the current branch.");
+            abort("Given branch is an ancestor of the current branch.");
         } else if (ancestor.equals(curr)) {
             reset(branchHash);
-            Abort("Current branch fast-forwarded.");
+            abort("Current branch fast-forwarded.");
         }
 
         /* Complex case, compare fileHash between the three */
@@ -253,9 +253,9 @@ public class Repo {
      */
     private static class Node {
         /** Wrap a commit object */
-        public final Commit commit;
+        private final Commit commit;
         /** Track the offspring(head of branch) */
-        public final Commit offspring;
+        private final Commit offspring;
 
         public Node(Commit commit, Commit offspring) {
             this.commit = commit;
@@ -265,8 +265,8 @@ public class Repo {
         /**
          * Check whether the input is its offspring
          */
-        public boolean isOffspring(Commit commit) {
-            return commit.equals(offspring);
+        public boolean isOffspring(Commit one) {
+            return one.equals(offspring);
         }
 
         /**
@@ -359,7 +359,7 @@ public class Repo {
         List<String> workFiles = GitletIO.getCWD();
         for (String fileName : workFiles) {
             if (!curr.isTracked(fileName) && other.isTracked(fileName)) {
-                Abort("There is an untracked file in the way; delete it, or add and commit it first.");
+                abort("There is an untracked file in the way; delete it, or add and commit it first.");
             }
         }
     }
@@ -423,7 +423,7 @@ public class Repo {
         Map<String, String> blobs = new HashMap<>(parent.getBlobs());
         Index index = Index.fromFile();
         if (index.isEmpty()) {
-            Abort("No changes added to the commit.");
+            abort("No changes added to the commit.");
         }
         index.commit(blobs);
         index.saveIndex();
@@ -464,7 +464,7 @@ public class Repo {
         } else if (len == 2) {
             map.put("branchName", args[1]);
         } else {
-            Abort("Incorrect operands.");
+            abort("Incorrect operands.");
         }
         return map;
     }
@@ -473,16 +473,16 @@ public class Repo {
         Commit commit = Commit.fromFile(commitHash);
         String blobHash = commit.fileHash(fileName);
         if (!commit.isTracked(fileName)) {
-            Abort("File does not exist in that commit.");
+            abort("File does not exist in that commit.");
         }
         GitletIO.writeCWD(fileName, blobHash);
     }
 
     private static void checkoutBranch(String branchName) {
         if (!GitletIO.isBranch(branchName)) {
-            Abort("No such branch exists.");
+            abort("No such branch exists.");
         } else if (branchName.equals(GitletIO.head())) {
-            Abort("No need to checkout the current branch.");
+            abort("No need to checkout the current branch.");
         } else {
             replaceCWD(GitletIO.getBranch(branchName));
             GitletIO.setHead(branchName);
