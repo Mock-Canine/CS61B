@@ -185,6 +185,11 @@ public class Commit implements Serializable {
         return hash.equals(other.hash);
     }
 
+    @Override
+    public int hashCode() {
+        return hash.hashCode();
+    }
+
     private void assignHash() {
         byte[] serialized = Utils.serialize(this);
         this.hash = Utils.sha1((Object) serialized);

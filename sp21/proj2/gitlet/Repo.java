@@ -296,6 +296,11 @@ public class Repo {
             Node other = (Node) obj;
             return commit.equals(other.commit);
         }
+
+        @Override
+        public int hashCode() {
+            return commit.hashCode();
+        }
     }
 
     /**
@@ -323,15 +328,16 @@ public class Repo {
                 return latest.commit;
             }
             List<Node> parents = latest.getParents();
-            if (latest.isOffspring(one)) {
-                oneFamily.addAll(parents);
-            } else {
-                otherFamily.addAll(parents);
-            }
             for (Node parent : parents) {
                 if (!oneFamily.contains(parent) && !otherFamily.contains(parent)) {
                     pq.add(parent);
                 }
+            }
+            // Should add after populate PQ
+            if (latest.isOffspring(one)) {
+                oneFamily.addAll(parents);
+            } else {
+                otherFamily.addAll(parents);
             }
         }
     }
@@ -417,6 +423,9 @@ public class Repo {
      * Return the newly made commit hash
      */
     private static String makeCommit(String message, String mergedIn) {
+        if (message.isEmpty()) {
+            abort("Please enter a commit message.");
+        }
         Commit parent = Commit.fromFile(GitletIO.headHash());
         // Cp content, not reference, this can not be detected by test
         // because the change to parent's blobs will not be saved to file
