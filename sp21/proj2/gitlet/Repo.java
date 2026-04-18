@@ -92,36 +92,17 @@ public class Repo {
         printUntracked();
     }
 
-    /**
-     * Handle three usages of checkout, input params must be valid for usages
-     * takes a map which may contains keys [branchName, commitId, fileName],
-     */
-    public static void checkout(Map<String, String> args) {
-        String branchName = args.get("branchName");
+    public static void checkout(String[] args) {
+        Map<String, String> params = parseCheckout(args);
+        String branchName = params.get("branchName");
         if (branchName == null) {
-            String commitId = args.get("commitId");
+            String commitId = params.get("commitId");
             if (commitId == null) {
                 commitId = GitletIO.headHash();
             }
-            String f = args.get("fileName");
-            Commit commit = Commit.fromFile(commitId);
-            String blobHash = commit.fileHash(f);
-            if (!commit.tracked(f)) {
-                Abort("File does not exist in that commit.");
-            }
-            GitletIO.writeCWD(f, blobHash);
+            checkoutFile(commitId, params.get("fileName"));
         } else {
-            if (!GitletIO.isBranch(branchName)) {
-                Abort("No such branch exists.");
-            } else if (branchName.equals(GitletIO.head())) {
-                Abort("No need to checkout the current branch.");
-            } else {
-                replaceCWD(GitletIO.getBranch(branchName));
-                GitletIO.setHead(branchName);
-                Index index = Index.fromFile();
-                index.abandon();
-                index.saveIndex();
-            }
+            checkoutBranch(branchName);
         }
     }
 
@@ -462,5 +443,48 @@ public class Repo {
         String fileHash = sha1((Object) content);
         String blobHash = commit.fileHash(fileName);
         return fileHash.equals(blobHash);
+    }
+
+    /**
+     * Parse the arguments for checkout command,
+     * returns a map which may contains keys [branchName, commitId, fileName],
+     */
+    private static Map<String, String> parseCheckout(String[] args) {
+        int len = args.length;
+        Map<String, String> map = new HashMap<>();
+        if (len == 3 && args[1].equals("--")) {
+            map.put("fileName", args[2]);
+        } else if (len == 4 && args[2].equals("--")) {
+            map.put("commitId", args[1]);
+            map.put("fileName", args[3]);
+        } else if (len == 2) {
+            map.put("branchName", args[1]);
+        } else {
+            Abort("Incorrect operands.");
+        }
+        return map;
+    }
+
+    private static void checkoutFile(String commitId, String fileName) {
+        Commit commit = Commit.fromFile(commitId);
+        String blobHash = commit.fileHash(fileName);
+        if (!commit.tracked(fileName)) {
+            Abort("File does not exist in that commit.");
+        }
+        GitletIO.writeCWD(fileName, blobHash);
+    }
+
+    private static void checkoutBranch(String branchName) {
+        if (!GitletIO.isBranch(branchName)) {
+            Abort("No such branch exists.");
+        } else if (branchName.equals(GitletIO.head())) {
+            Abort("No need to checkout the current branch.");
+        } else {
+            replaceCWD(GitletIO.getBranch(branchName));
+            GitletIO.setHead(branchName);
+            Index index = Index.fromFile();
+            index.abandon();
+            index.saveIndex();
+        }
     }
 }

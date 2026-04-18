@@ -1,8 +1,5 @@
 package gitlet;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author MockCanine
  */
@@ -58,7 +55,7 @@ public class Main {
                 break;
             case "checkout":
                 GitletIO.isInRepo();
-                Repo.checkout(parseCheckout(args));
+                Repo.checkout(args);
                 break;
             case "branch":
                 validateNumArgs(args, 2);
@@ -93,26 +90,6 @@ public class Main {
         if (args.length != n) {
             Abort("Incorrect operands.");
         }
-    }
-
-    /**
-     * Parse the arguments for checkout command,
-     * returns a map which may contains keys [branchName, commitId, fileName],
-     */
-    public static Map<String, String> parseCheckout(String[] args) {
-        int len = args.length;
-        Map<String, String> map = new HashMap<>();
-        if (len == 3 && args[1].equals("--")) {
-            map.put("fileName", args[2]);
-        } else if (len == 4 && args[2].equals("--")) {
-            map.put("commitId", args[1]);
-            map.put("fileName", args[3]);
-        } else if (len == 2) {
-            map.put("branchName", args[1]);
-        } else {
-            Abort("Incorrect operands.");
-        }
-        return map;
     }
 
     /**
