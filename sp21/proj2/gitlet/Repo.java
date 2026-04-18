@@ -20,7 +20,6 @@ public class Repo {
      * Manipulate staging area for a file
      */
     public static void add(String f) {
-        GitletIO.isInRepo();
         if (!GitletIO.inCWD(f)) {
             Abort("File does not exist.");
         }
@@ -36,12 +35,10 @@ public class Repo {
     }
 
     public static void commit(String message) {
-        GitletIO.isInRepo();
         makeCommit(message);
     }
 
     public static void rm(String f) {
-        GitletIO.isInRepo();
         Commit curr = Commit.fromFile(GitletIO.headHash());
         Index index = Index.fromFile();
         boolean inCommit = curr.tracked(f);
@@ -58,12 +55,10 @@ public class Repo {
     }
 
     public static void log() {
-        GitletIO.isInRepo();
         Commit.printHistory(GitletIO.headHash());
     }
 
     public static void globalLog() {
-        GitletIO.isInRepo();
         for (String hash : GitletIO.getCommits()) {
             Commit commit = Commit.fromFile(hash);
             System.out.println(commit);
@@ -71,7 +66,6 @@ public class Repo {
     }
 
     public static void find(String message){
-        GitletIO.isInRepo();
         boolean isFound = false;
         for (String hash : GitletIO.getCommits()) {
             Commit commit = Commit.fromFile(hash);
@@ -86,45 +80,10 @@ public class Repo {
     }
 
     public static void status() {
-        GitletIO.isInRepo();
-        Commit commit = Commit.fromFile(GitletIO.headHash());
-        Index index = Index.fromFile();
-        Set<String> files = index.addition();
-        files.addAll(commit.trackedFiles());
-        files.addAll(GitletIO.getCWD());
-
-        List<String> notStaged = new ArrayList<>();
-        List<String> untracked = new ArrayList<>();
-        for (String f : files) {
-            boolean staged = index.isStaged(f);
-            boolean tracked = commit.tracked(f);
-            boolean inCWD = GitletIO.inCWD(f);
-            boolean stagedRm = index.isStagedRm(f);
-            if (inCWD && !staged && (!tracked || stagedRm)) {
-                untracked.add(f);
-                continue;
-            }
-            boolean sameAs = inCWD && sameAs(commit, f);
-            boolean sameInIndex = inCWD && index.sameAs(f);
-
-            boolean caseA = tracked && !sameAs && staged;
-            boolean caseB = staged && !sameInIndex;
-
-            boolean caseC = staged && !inCWD;
-            boolean caseD = !stagedRm && tracked && !inCWD;
-            if (caseA || caseB) {
-                notStaged.add(f + " (modified)");
-            } else if (caseC || caseD) {
-                notStaged.add(f + " (deleted)");
-            }
-        }
-        notStaged.sort(null);
-        untracked.sort(null);
-
         printBranches();
         printStagingArea();
-        printNotStaged(notStaged);
-        printUntracked(untracked);
+        printNotStaged();
+        printUntracked();
     }
 
     /**
@@ -132,7 +91,6 @@ public class Repo {
      * takes a map which may contains keys [branchName, commitId, fileName],
      */
     public static void checkout(Map<String, String> args) {
-        GitletIO.isInRepo();
         String branchName = args.get("branchName");
         if (branchName == null) {
             String commitId = args.get("commitId");
@@ -162,7 +120,6 @@ public class Repo {
     }
 
     public static void branch(String name) {
-        GitletIO.isInRepo();
         if (GitletIO.isBranch(name)) {
             Abort("A branch with that name already exists.");
         }
@@ -170,7 +127,6 @@ public class Repo {
     }
 
     public static void rmBranch(String name) {
-        GitletIO.isInRepo();
         if (!GitletIO.isBranch(name)) {
             Abort("A branch with that name does not exist.");
         }
@@ -181,7 +137,6 @@ public class Repo {
     }
 
     public static void reset(String commitId) {
-        GitletIO.isInRepo();
         replaceCWD(commitId);
         GitletIO.updateBranch(GitletIO.head(), commitId);
         Index index = Index.fromFile();
@@ -191,7 +146,6 @@ public class Repo {
 
     public static void merge(String branchName) {
         /* Handle exceptions */
-        GitletIO.isInRepo();
         if (!GitletIO.isBranch(branchName)) {
             Abort("A branch with that name does not exist.");
         } else if (GitletIO.head().equals(branchName)) {
@@ -266,19 +220,29 @@ public class Repo {
      * Modify the conflict file content for merge
      */
     private static void conflictFile(Commit curr, Commit other, String fileName) {
-        String currFile = "";
-        String otherFile = "";
+        String content = "";
         if (curr.tracked(fileName)) {
-            currFile = GitletIO.getBlob(curr.fileHash(fileName));
+            content += """
+                <<<<<<< HEAD
+                %s
+                """.formatted(GitletIO.getBlob(curr.fileHash(fileName)));
+        } else {
+            content += """
+                <<<<<<< HEAD
+                """;
         }
         if (other.tracked(fileName)) {
-            otherFile = GitletIO.getBlob(other.fileHash(fileName));
-        }
-        String content = """
-                <<<<<<< HEAD%s
-                =======%s
+            content += """
+                =======
+                %s
                 >>>>>>>
-                """.formatted("\n" + currFile, "\n" + otherFile);
+                """.formatted(GitletIO.getBlob(other.fileHash(fileName)));
+        } else {
+            content += """
+                =======
+                >>>>>>>
+                """;
+        }
         File fp = Utils.join(CWD, fileName);
         Utils.writeContents(fp, content);
     }
@@ -431,18 +395,18 @@ public class Repo {
         System.out.println(index);
     }
 
-    private static void printNotStaged(List<String> src) {
-        System.out.printf("""
+    private static void printNotStaged() {
+        System.out.println("""
                 === Modifications Not Staged For Commit ===
-                %s
-                %n""", String.join("\n", src));
+                
+                """);
     }
 
-    private static void printUntracked(List<String> src) {
-        System.out.printf("""
+    private static void printUntracked() {
+        System.out.println("""
                 === Untracked Files ===
-                %s
-                """, String.join("\n", src));
+                
+                """);
     }
 
     /**

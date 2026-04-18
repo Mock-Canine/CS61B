@@ -158,12 +158,17 @@ public class GitletIO {
 
     /**
      * Return branch hash
+     * Assume branchName is valid
      */
     public static String getBranch(String branchName) {
         File fp = Utils.join(HEADS, branchName);
         return Utils.readContentsAsString(fp);
     }
 
+    /**
+     * Remove branch
+     * Assume branchName is valid
+     */
     public static void rmBranch(String branchName) {
         File fp = Utils.join(HEADS, branchName);
         Utils.restrictedDelete(fp);

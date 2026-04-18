@@ -26,13 +26,6 @@ public class Index implements Serializable {
     }
 
     /**
-     * Return the files in the current staging area for addition
-     */
-    public Set<String> addition() {
-        return addition.keySet();
-    }
-
-    /**
      * Create or overwrite index file
      */
     public void saveIndex() {
@@ -63,24 +56,6 @@ public class Index implements Serializable {
      */
     public boolean isStaged(String name) {
         return addition.containsKey(name);
-    }
-
-    /**
-     * Check whether the file in the CWD is the same as in the staging for addition
-     * Assume file exists
-     */
-    public boolean sameAs(String fileName) {
-        File fp = Utils.join(CWD, fileName);
-        byte[] content = Utils.readContents(fp);
-        String fileHash = sha1((Object) content);
-        return fileHash.equals(addition.get(fileName));
-    }
-
-    /**
-     * Return whether the file has been staged for removal
-     */
-    public boolean isStagedRm(String name) {
-        return removal.contains(name);
     }
 
     /**
@@ -128,12 +103,31 @@ public class Index implements Serializable {
         List<String> removed = new ArrayList<>(removal);
         staged.sort(null);
         removed.sort(null);
-        return """
-            === Staged Files ===
-            %s
+        String content = "";
+        if (!staged.isEmpty()) {
+            content += """
+                === Staged Files ===
+                %s
             
-            === Removed Files ===
-            %s
-            """.formatted(String.join("\n", staged), String.join("\n", removed));
+                """.formatted(String.join("\n", staged));
+        } else {
+            content += """
+                === Staged Files ===
+            
+                """;
+        }
+        if (!removed.isEmpty()) {
+            content += """
+                === Removed Files ===
+                %s
+            
+                """.formatted(String.join("\n", removed));
+        } else {
+            content += """
+                === Removed Files ===
+            
+                """;
+        }
+        return content;
     }
 }

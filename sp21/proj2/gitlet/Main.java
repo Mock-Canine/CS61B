@@ -23,50 +23,61 @@ public class Main {
                 break;
             case "add":
                 validateNumArgs(args, 2);
+                GitletIO.isInRepo();
                 Repo.add(args[1]);
                 break;
             case "commit":
                 validateNumArgs(args, 2);
+                GitletIO.isInRepo();
                 Repo.commit(args[1]);
                 break;
             case "rm":
                 validateNumArgs(args, 2);
+                GitletIO.isInRepo();
                 Repo.rm(args[1]);
                 break;
             case "log":
                 validateNumArgs(args, 1);
+                GitletIO.isInRepo();
                 Repo.log();
                 break;
             case "global-log":
                 validateNumArgs(args, 1);
+                GitletIO.isInRepo();
                 Repo.globalLog();
                 break;
             case "find":
                 validateNumArgs(args, 2);
+                GitletIO.isInRepo();
                 Repo.find(args[1]);
                 break;
             case "status":
                 validateNumArgs(args, 1);
+                GitletIO.isInRepo();
                 Repo.status();
                 break;
             case "checkout":
-                // Do format check inside this func
+                GitletIO.isInRepo();
                 Repo.checkout(parseCheckout(args));
                 break;
             case "branch":
                 validateNumArgs(args, 2);
+                GitletIO.isInRepo();
                 Repo.branch(args[1]);
                 break;
             case "rm-branch":
                 validateNumArgs(args, 2);
+                GitletIO.isInRepo();
                 Repo.rmBranch(args[1]);
                 break;
             case "reset":
                 validateNumArgs(args, 2);
+                GitletIO.isInRepo();
                 Repo.reset(args[1]);
                 break;
             case "merge":
                 validateNumArgs(args, 2);
+                GitletIO.isInRepo();
                 Repo.merge(args[1]);
                 break;
             default:

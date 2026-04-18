@@ -1,6 +1,7 @@
 package gitlet;
 
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Date;
 import java.util.*;
@@ -17,7 +18,7 @@ public class Commit implements Serializable {
     private final String message;
     /** The timestamp of this commit. */
     private final Date date;
-    /** The parents of commit. Use empty string for missing parents */
+    /** The parents of commit. Use empty string for missing parent */
     private final String parent1Hash;
     private final String parent2Hash;
     /** The hash of the commit, will be set when retrieved from file or initialized */
@@ -109,7 +110,7 @@ public class Commit implements Serializable {
      * Return the files tracked by the commit
      */
     public Set<String> trackedFiles() {
-        return blobs.keySet();
+        return new HashSet<>(blobs.keySet());
     }
 
     public String getMessage() {
@@ -123,8 +124,8 @@ public class Commit implements Serializable {
     /**
      * Return the parents hash
      */
-    public Set<String> getParents() {
-        Set<String> parents = new TreeSet<>();
+    public List<String> getParents() {
+        List<String> parents = new ArrayList<>();
         if (!parent1Hash.isEmpty()) {
             parents.add(parent1Hash);
         }
@@ -136,14 +137,23 @@ public class Commit implements Serializable {
 
     @Override
     public String toString() {
-        String merge = parent2Hash.isEmpty() ? "" : "\nMerge: " + parent1Hash.substring(0, 7)
-                + " " + parent2Hash.substring(0, 7);
-        return """
-            ===
-            commit %s%s
-            Date: %ta %<tb %<te %<tT %<tY %<tz
-            %s
-            """.formatted(hash, merge, date, message);
+        String dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.ENGLISH).format(date);
+        if (parent2Hash.isEmpty()) {
+            return """
+                    ===
+                    commit %s
+                    Date: %s
+                    %s
+                    """.formatted(hash, dateFormat, message);
+        } else {
+            return """
+                    ===
+                    commit %s
+                    Merge: %s %s
+                    Date: %s
+                    %s
+                    """.formatted(hash, parent1Hash.substring(0, 7), parent2Hash.substring(0, 7), dateFormat, message);
+        }
     }
 
     @Override
