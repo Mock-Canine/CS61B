@@ -73,7 +73,7 @@ public class Repo {
     public static void globalLog() {
         for (String hash : GitletIO.getCommits()) {
             Commit commit = Commit.fromFile(hash);
-            System.out.println(commit);
+            System.out.print(commit);
         }
     }
 
@@ -384,18 +384,18 @@ public class Repo {
 
     private static void printStagingArea() {
         Index index = Index.fromFile();
-        System.out.println(index);
+        System.out.print(index);
     }
 
     private static void printNotStaged() {
-        System.out.println("""
+        System.out.print("""
                 === Modifications Not Staged For Commit ===
                 
                 """);
     }
 
     private static void printUntracked() {
-        System.out.println("""
+        System.out.print("""
                 === Untracked Files ===
                 
                 """);
