@@ -26,6 +26,14 @@ public class Index implements Serializable {
     }
 
     /**
+     * init empty staging area and save to file
+     */
+    public static void initIndex() {
+        Index index = new Index();
+        index.saveIndex();
+    }
+
+    /**
      * Create or overwrite index file
      */
     public void saveIndex() {

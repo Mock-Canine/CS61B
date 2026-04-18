@@ -8,12 +8,17 @@ import static gitlet.Main.Abort;
 import static gitlet.Utils.sha1;
 
 public class Repo {
+    /** Initial branch name */
+    public static final String defaultBranch = "master";
+
     /**
      * Init gitlet repo and make initial commit
      */
     public static void init() {
-        GitletIO.init();
-        makeCommit("initial commit");
+        GitletIO.initFilesystem();
+        GitletIO.setHead(defaultBranch);
+        String hash = initialCommit();
+        GitletIO.updateBranch(GitletIO.head(), hash);
     }
 
     /**
@@ -35,7 +40,8 @@ public class Repo {
     }
 
     public static void commit(String message) {
-        makeCommit(message);
+        String hash = makeCommit(message, "");
+        GitletIO.updateBranch(GitletIO.head(), hash);
     }
 
     public static void rm(String f) {
@@ -210,7 +216,8 @@ public class Repo {
             }
         }
         index.saveIndex();
-        mergeCommit("Merged" + branchName + "into" + GitletIO.head(), branchHash);
+        String hash = makeCommit("Merged" + branchName + "into" + GitletIO.head(), branchHash);
+        GitletIO.updateBranch(GitletIO.head(), hash);
         if (hasConflict) {
             System.out.println("Encountered a merge conflict.");
         }
@@ -410,17 +417,39 @@ public class Repo {
     }
 
     /**
-     * Create and save a commit automatically
+     * Create and save initial commit to filesystem
+     * Return the newly made commit hash
      */
-    private static void makeCommit(String message) {
-        new Commit(message);
+    private static String initialCommit() {
+        Commit commit = new Commit("initial commit");
+        commit.save();
+        return commit.getHash();
     }
 
     /**
-     * make merge commit, mergedIn branch hash is needed
+     * Create and save a commit to filesystem
+     * Provide mergedIn branch hash if you do a merge commit, empty string otherwise
+     * Return the newly made commit hash
      */
-    private static void mergeCommit(String message, String mergedIn) {
-        new Commit(message, mergedIn);
+    private static String makeCommit(String message, String mergedIn) {
+        Commit parent = Commit.fromFile(GitletIO.headHash());
+        // Cp content, not reference, this can not be detected by test
+        // because the change to parent's blobs will not be saved to file
+        Map<String, String> blobs = new HashMap<>(parent.getBlobs());
+        Index index = Index.fromFile();
+        if (index.isEmpty()) {
+            Abort("No changes added to the commit.");
+        }
+        index.clear(blobs);
+        index.saveIndex();
+        Commit commit;
+        if (!mergedIn.isEmpty()) {
+            commit = new Commit(message, GitletIO.headHash(), mergedIn, blobs);
+        } else {
+            commit = new Commit(message, GitletIO.headHash(), blobs);
+        }
+        commit.save();
+        return commit.getHash();
     }
 
     /**

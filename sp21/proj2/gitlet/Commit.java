@@ -6,26 +6,26 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.*;
 
-import static gitlet.Main.Abort;
-
 /**
  * Represents a gitlet commit object.
+ * Use SHA-1 hash as the identifier of each commit.
+ * Use a map view (fileName, fileHash) to track files
+ * Use 0, 1 or 2 parents to indicate initial, normal and merge commit
  */
-// TODO: Avoid null return value in all methods
-// TODO: Check if provide proper methods, some methods may move to other classes
 public class Commit implements Serializable {
     /** The message of this Commit. */
     private final String message;
-    /** The timestamp of this commit. */
-    private final Date date;
     /** The parents of commit. Use empty string for missing parent */
     private final String parent1Hash;
     private final String parent2Hash;
-    /** The hash of the commit, will be set when retrieved from file or initialized */
-    private transient String hash;
     /** The blobs tracked by the commit */
     private final HashMap<String, String> blobs;
+    /** The timestamp of this commit. */
+    private final Date date;
+    /** The hash of the commit, will be set when retrieved from file or initialized */
+    private transient String hash;
 
+    /* Methods for retrieve and save commit object from/to filesystem */
     /**
      * Retrieve a commit object from file
      * @param hash valid format: 4-40 characters long, each represent a
@@ -40,56 +40,59 @@ public class Commit implements Serializable {
     }
 
     /**
-     * Print history a commit, if there are multiple parents,
+     * Save the commit
+     */
+    public void save() {
+        byte[] serialized = Utils.serialize(this);
+        GitletIO.saveCommit(serialized);
+    }
+
+    /**
+     * Print history of a commit, if there are multiple parents,
      * just print the history of first parent
-     * @param hash valid commit hash
      */
     public static void printHistory(String hash) {
-        // Hit initial commit's parent
         while (!hash.isEmpty()) {
-            Commit commit = fromFile(hash);
+            Commit commit = Commit.fromFile(hash);
             System.out.println(commit);
             hash = commit.parent1Hash;
         }
     }
 
+    /* Constructors */
+    /**
+     * Constructor for initial commit, no parent
+     */
+    public Commit(String msg) {
+        message = msg;
+        parent1Hash = "";
+        parent2Hash = "";
+        blobs = new HashMap<>();
+        date = Date.from(Instant.EPOCH);
+        assignHash();
+    }
+
     /**
      * Constructor for non-merge commit
      */
-    public Commit(String msg) {
-        this(msg, "");
+    public Commit(String msg, String curr, Map<String, String> blobs) {
+        this(msg, curr, "", blobs);
     }
 
     /**
-     * Constructor for merge commit, mergedIn branch hash is needed
+     * Constructor for merge commit
+     * Provide current commit and mergedIn commit as its two parents
      */
-    public Commit(String msg, String mergedIn) {
-        if (msg.isEmpty()) {
-            Abort("Please enter a commit message.");
-        }
+    public Commit(String msg, String curr, String mergedIn, Map<String, String> blobs) {
         message = msg;
+        parent1Hash = curr;
         parent2Hash = mergedIn;
-        if (!GitletIO.existBranch()) {
-            parent1Hash = "";
-            blobs = new HashMap<>();
-            date = Date.from(Instant.EPOCH);
-        } else {
-            Commit parent = fromFile(GitletIO.headHash());
-            parent1Hash = parent.hash;
-            // Cp content, not reference, this can not be detected by test
-            // because the change to parent's blobs will not be saved to file
-            blobs = new HashMap<>(parent.blobs);
-            Index index = Index.fromFile();
-            if (index.isEmpty()) {
-                Abort("No changes added to the commit.");
-            }
-            index.clear(blobs);
-            index.saveIndex();
-            date = Date.from(Instant.now());
-        }
-        save();
+        this.blobs = new HashMap<>(blobs);
+        date = Date.from(Instant.now());
+        assignHash();
     }
 
+    /* Observer methods */
     /**
      * Return whether the file is tracked by the commit
      */
@@ -107,10 +110,14 @@ public class Commit implements Serializable {
     }
 
     /**
-     * Return the files tracked by the commit
+     * Return the file names tracked by the commit
      */
     public Set<String> trackedFiles() {
         return new HashSet<>(blobs.keySet());
+    }
+
+    public String getHash() {
+        return hash;
     }
 
     public String getMessage() {
@@ -119,6 +126,13 @@ public class Commit implements Serializable {
 
     public Date getDate() {
         return date;
+    }
+
+    /**
+     * Return a map view of files tracked by the commit
+     */
+    public Map<String, String> getBlobs() {
+        return new HashMap<>(blobs);
     }
 
     /**
@@ -168,14 +182,8 @@ public class Commit implements Serializable {
         return hash.equals(other.hash);
     }
 
-    /**
-     * Save the commit, update branch pointer and assign the hash attribute
-     */
-    private void save() {
+    private void assignHash() {
         byte[] serialized = Utils.serialize(this);
-        GitletIO.saveCommit(serialized);
-        String hash = Utils.sha1((Object) serialized);
-        this.hash = hash;
-        GitletIO.updateBranch(GitletIO.head(), hash);
+        this.hash = Utils.sha1((Object) serialized);
     }
 }
