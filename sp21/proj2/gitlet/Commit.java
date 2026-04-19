@@ -6,6 +6,8 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.*;
 
+import static gitlet.Repo.repo;
+
 /**
  * Represents a gitlet commit object.
  * Use SHA-1 hash as the identifier of each commit.
@@ -34,7 +36,7 @@ public class Commit implements Serializable {
      * Abort the program if provide invalid hash
      */
     public static Commit fromFile(String commitHash) {
-        Commit commit = GitletIO.getCommit(commitHash);
+        Commit commit = repo.getCommit(commitHash);
         commit.hash = commitHash;
         return commit;
     }
@@ -56,7 +58,7 @@ public class Commit implements Serializable {
      */
     public void save() {
         byte[] serialized = Utils.serialize(this);
-        GitletIO.saveCommit(serialized);
+        repo.saveCommit(serialized);
     }
 
     /* Constructors */

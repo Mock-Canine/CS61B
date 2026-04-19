@@ -1,7 +1,8 @@
 package gitlet;
 
 import java.io.File;
-import java.util.List;
+import java.nio.file.Path;
+import java.util.*;
 
 import static gitlet.Main.abort;
 import static gitlet.Utils.sha1;
@@ -23,39 +24,53 @@ import static gitlet.Utils.sha1;
  *    - config -- file containing location of remote repos
  *    - index -- file(staging area) tracking files for addition or removal
  */
-public class GitletIO {
-    /** The current working directory. */
-    public static final File CWD = new File(System.getProperty("user.dir"));
+public class fileSystem {
+    /** The root directory of this gitlet filesystem */
+    private final File root;
     /** The .gitlet directory. */
-    private static final File GITLET = Utils.join(CWD, ".gitlet");
+    private final File gitlet;
     /** Initial directories of gitlet filesystem */
-    private static final File OBJECTS = Utils.join(GITLET, "objects");
-    private static final File REFS = Utils.join(GITLET, "refs");
-    private static final File COMMITS = Utils.join(OBJECTS, "commits");
-    private static final File BLOBS = Utils.join(OBJECTS, "blobs");
-    private static final File HEADS = Utils.join(REFS, "heads");
+    private final File objects;
+    private final File refs;
+    private final File commits;
+    private final File blobs;
+    private final File heads;
     /** Initial files of gitlet filesystem */
-    private static final File HEAD = Utils.join(GITLET, "HEAD");
-    private static final File INDEX = Utils.join(GITLET, "index");
+    private final File head;
+    private final File index;
     /** directory for remote repos */
-    private static final File REMOTES = Utils.join(REFS, "remotes");
+    private final File remotes;
     /** file for remote repos */
-    private static final File CONFIG = Utils.join(GITLET, "config");
+    private final File config;
+
+    public fileSystem(File root) {
+        this.root = root;
+        gitlet = Utils.join(root, ".gitlet");
+        objects = Utils.join(gitlet, "objects");
+        refs = Utils.join(gitlet, "refs");
+        commits = Utils.join(objects, "commits");
+        blobs = Utils.join(objects, "blobs");
+        heads = Utils.join(refs, "heads");
+        head = Utils.join(gitlet, "HEAD");
+        index = Utils.join(gitlet, "index");
+        remotes = Utils.join(refs, "remotes");
+        config = Utils.join(gitlet, "config");
+    }
 
     /**
      * Init the gitlet filesystem
      */
-    public static void initFilesystem() {
-        if (GITLET.exists()) {
+    public void init() {
+        if (gitlet.exists()) {
             abort("A Gitlet version-control system already exists in the current directory.");
         }
         // Create required folders, order of creating matters
-        mkdir(GITLET);
-        mkdir(OBJECTS);
-        mkdir(REFS);
-        mkdir(COMMITS);
-        mkdir(BLOBS);
-        mkdir(HEADS);
+        mkdir(gitlet);
+        mkdir(objects);
+        mkdir(refs);
+        mkdir(commits);
+        mkdir(blobs);
+        mkdir(heads);
         // Create clean staging area and config
         Index.resetIndex();
         Config.initConfig();
@@ -64,15 +79,13 @@ public class GitletIO {
     /**
      * Check if in a gitlet repo
      */
-    public static void isInRepo() {
-        if (!GITLET.exists()) {
+    public void isInRepo() {
+        if (!gitlet.exists()) {
             abort("Not in an initialized Gitlet directory.");
         }
     }
 
     /* IO for commit operations, call the corresponding version in Commit to get and save */
-    private static final int HASH_LEN = 40;
-
     /**
      * Retrieve a commit object from file
      * @param commitHash valid format: 4-40 characters long, each represent a
@@ -80,7 +93,7 @@ public class GitletIO {
      * With valid format, it should also indicate a unique commit without ambiguity
      * Abort the program if provide invalid hash
      */
-    public static Commit getCommit(String commitHash) {
+    public Commit getCommit(String commitHash) {
         File fp = parsePath(commitHash);
         if (fp == null) {
             abort("No commit with that id exists.");
@@ -94,24 +107,25 @@ public class GitletIO {
      *             lower case hex number, without any prefix like 0x, 0X, etc.
      * With valid format, it should also indicate a unique commit without ambiguity
      */
-    private static File parsePath(String hash) {
+    private File parsePath(String hash) {
         if (!hash.matches("^[0-9a-f]{4,40}$")) {
             return null;
         }
-        if (hash.length() == HASH_LEN) {
-            File fp = Utils.join(COMMITS, hash);
+        int hashLen = 40;
+        if (hash.length() == hashLen) {
+            File fp = Utils.join(commits, hash);
             return fp.exists() ? fp : null;
         }
         int num = 0;
         String fullHash = null;
-        for (String commitHash : listFiles(COMMITS)) {
+        for (String commitHash : listFiles(commits)) {
             if (commitHash.startsWith(hash)) {
                 num++;
                 fullHash = commitHash;
             }
         }
         if (num == 1) {
-            return Utils.join(COMMITS, fullHash);
+            return Utils.join(commits, fullHash);
         }
         return null;
     }
@@ -119,27 +133,27 @@ public class GitletIO {
     /**
      * Save the serialized commit object to filesystem
      */
-    public static void saveCommit(byte[] content) {
+    public void saveCommit(byte[] content) {
         // Only need the content as param, use hash as the name is just the design choice
         String hash = sha1((Object) content);
-        File fp = Utils.join(COMMITS, hash);
+        File fp = Utils.join(commits, hash);
         Utils.writeContents(fp, (Object) content);
     }
 
     /**
      * Returns the hash of all commits in the repo
      */
-    public static List<String> getCommits() {
-        return listFiles(COMMITS);
+    public List<String> getCommits() {
+        return listFiles(commits);
     }
 
     /* IO for index operations, call the corresponding version in Index to get and save */
-    public static Index getIndex() {
-        return Utils.readObject(INDEX, Index.class);
+    public Index getIndex() {
+        return Utils.readObject(index, Index.class);
     }
 
-    public static void saveIndex(Index index) {
-        Utils.writeObject(INDEX, index);
+    public void saveIndex(Index index) {
+        Utils.writeObject(this.index, index);
     }
 
     /* IO for branch operations */
@@ -148,25 +162,25 @@ public class GitletIO {
      * Create new branch if not exists.
      * Assume valid commitHash.
      */
-    public static void updateBranch(String branchName, String commitHash) {
-        File fp = Utils.join(HEADS, branchName);
+    public void updateBranch(String branchName, String commitHash) {
+        File fp = Utils.join(heads, branchName);
         Utils.writeContents(fp, commitHash);
     }
 
     /**
      * Check if the name represents a valid branch
      */
-    public static boolean isBranch(String branchName) {
+    public boolean isBranch(String branchName) {
         // Do not use listFiles(), this is in O(1) time
-        return Utils.join(HEADS, branchName).exists();
+        return Utils.join(heads, branchName).exists();
     }
 
     /**
      * Return branch hash
      * Assume branchName is valid
      */
-    public static String getBranch(String branchName) {
-        File fp = Utils.join(HEADS, branchName);
+    public String getBranch(String branchName) {
+        File fp = Utils.join(heads, branchName);
         return Utils.readContentsAsString(fp);
     }
 
@@ -174,8 +188,8 @@ public class GitletIO {
      * Remove branch
      * Assume branchName is valid
      */
-    public static void rmBranch(String branchName) {
-        File fp = Utils.join(HEADS, branchName);
+    public void rmBranch(String branchName) {
+        File fp = Utils.join(heads, branchName);
         if (!fp.delete()) {
             abort("Fail to remove a branch.");
         }
@@ -184,78 +198,78 @@ public class GitletIO {
     /**
      * Return all the branch names of this repo
      */
-    public static List<String> getBranches() {
-        return listFiles(HEADS);
+    public List<String> getBranches() {
+        return listFiles(heads);
     }
 
     /**
      * Set head pointer to the branch
      * Assume branchName is valid
      */
-    public static void setHead(String branchName) {
-        Utils.writeContents(HEAD, branchName);
+    public void setHead(String branchName) {
+        Utils.writeContents(head, branchName);
     }
 
     /**
      * Return the hash of the head of current branch
      */
-    public static String headHash() {
+    public String headHash() {
         return getBranch(head());
     }
 
     /**
      * Return the branch name head pointer point to
      */
-    public static String head() {
-        return Utils.readContentsAsString(HEAD);
+    public String head() {
+        return Utils.readContentsAsString(head);
     }
 
     /* IO for blobs and working directory files */
     /**
      * Check whether the file is in the CWD
      */
-    public static boolean inCWD(String fileName) {
-        File fp = Utils.join(CWD, fileName);
+    public boolean inCWD(String fileName) {
+        File fp = Utils.join(root, fileName);
         return fp.exists();
     }
 
     /**
      * remove file from the CWD
      */
-    public static void rmCWD(String fileName) {
-        File fp = Utils.join(CWD, fileName);
+    public void rmCWD(String fileName) {
+        File fp = Utils.join(root, fileName);
         Utils.restrictedDelete(fp);
     }
 
     /**
      * create or overwrite file in the CWD with a file tracked by a commit
      */
-    public static void writeCWD(String fileName, String blobHash) {
-        File bp = Utils.join(BLOBS, blobHash);
-        File fp = Utils.join(CWD, fileName);
+    public void writeCWD(String fileName, String blobHash) {
+        File bp = Utils.join(blobs, blobHash);
+        File fp = Utils.join(root, fileName);
         Utils.writeContents(fp, (Object) Utils.readContents(bp));
     }
 
     /**
      * get files in the CWD
      */
-    public static List<String> getCWD() {
-        return listFiles(CWD);
+    public List<String> getRoot() {
+        return listFiles(root);
     }
 
     /**
      * Save the file in CWD to blobs
      */
-    public static void saveBlob(String fileHash, byte[] content) {
-        File blob = Utils.join(BLOBS, fileHash);
+    public void saveBlob(String fileHash, byte[] content) {
+        File blob = Utils.join(blobs, fileHash);
         Utils.writeContents(blob, (Object) content);
     }
 
     /**
      * Return the content of a blob by its hash
      */
-    public static String getBlob(String blobHash) {
-        File fp = Utils.join(BLOBS, blobHash);
+    public String getBlob(String blobHash) {
+        File fp = Utils.join(blobs, blobHash);
         return Utils.readContentsAsString(fp);
     }
 
@@ -263,23 +277,23 @@ public class GitletIO {
     /**
      * Retrieve config from its file
      */
-    public static Config getConfig() {
-        return Utils.readObject(CONFIG, Config.class);
+    public Config getConfig() {
+        return Utils.readObject(config, Config.class);
     }
 
     /**
      * Save config to its file
      */
-    public static void saveConfig(Config config) {
-        Utils.writeObject(CONFIG, config);
+    public void saveConfig(Config config) {
+        Utils.writeObject(this.config, config);
     }
 
     /**
      * Remove the actual folder for remote if exists
      * Assume valid remote name
      */
-    public static void rmRemoteDir(String name) {
-        File fp = Utils.join(REMOTES, name);
+    public void rmRemoteDir(String name) {
+        File fp = Utils.join(remotes, name);
         if (fp.exists()) {
             if (!fp.delete()) {
                 abort("Fail to remove the remote directory");
@@ -288,9 +302,57 @@ public class GitletIO {
     }
 
     /**
+     * Fetch from a remote repo
+     * Assume valid path, remote name
+     */
+    public void fetchRemote(File path, String name, String branchName) {
+        File remoteBranch = Utils.join(path, relativePath(heads), branchName);
+        if (!remoteBranch.exists()) {
+            abort("That remote does not have that branch.");
+        }
+        mkRemoteDir(name);
+        String headHash = Utils.readContentsAsString(remoteBranch);
+        File branch = Utils.join(remotes, name, branchName);
+        Utils.writeContents(branch, headHash);
+    }
+
+    private void mkRemoteDir(String name) {
+        if (!remotes.exists()) {
+            mkdir(remotes);
+        }
+        File remote = Utils.join(remotes, name);
+        if (!remote.exists()) {
+            mkdir(remote);
+        }
+    }
+
+    /**
+     * Retrieve non-common commits and blobs from remote repo and save to local repo
+     */
+    private void saveRemoteCommits(File path, String headHash) {
+        File remoteCommits = Utils.join(path, relativePath(commits));
+        File remoteBlobs = Utils.join(path, relativePath(blobs));
+        Queue<String> pq = new ArrayDeque<>();
+        Set<String> marked = new HashSet<>();
+        pq.add(headHash);
+        while (!pq.isEmpty()) {
+            String hash = pq.poll();
+        }
+    }
+
+    /**
+     * Return a string view of relative path between repo root and any sub folder/file
+     */
+    private String relativePath(File subFolder) {
+        Path root = gitlet.toPath();
+        Path sub = subFolder.toPath();
+        return root.relativize(sub).toString();
+    }
+
+    /**
      * Return the file names inside a folder in the gitlet repo
      */
-    private static List<String> listFiles(File dir) {
+    private List<String> listFiles(File dir) {
         List<String> files = Utils.plainFilenamesIn(dir);
         if (files == null) {
             abort("File system is broken, init a new gitlet repo!");
@@ -301,7 +363,7 @@ public class GitletIO {
     /**
      * Create a directory for filesystem
      */
-    private static void mkdir(File dir) {
+    private void mkdir(File dir) {
         if (!dir.mkdir()) {
             abort("Fail to construct gitlet filesystem");
         }

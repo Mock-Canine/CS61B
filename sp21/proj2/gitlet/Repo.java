@@ -4,32 +4,35 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static gitlet.GitletIO.CWD;
 import static gitlet.Main.abort;
 import static gitlet.Utils.sha1;
 
 public class Repo {
+    /** The current working directory. */
+    public static final File CWD = new File(System.getProperty("user.dir"));
     /** Initial branch name */
     public static final String DEFAULT_BRANCH = "master";
+    /** Filesystem represent repo under CWD */
+    public static final fileSystem repo = new fileSystem(CWD);
 
     /**
      * Init gitlet repo and make initial commit
      */
     public static void init() {
-        GitletIO.initFilesystem();
-        GitletIO.setHead(DEFAULT_BRANCH);
+        repo.init();
+        repo.setHead(DEFAULT_BRANCH);
         String hash = initialCommit();
-        GitletIO.updateBranch(GitletIO.head(), hash);
+        repo.updateBranch(repo.head(), hash);
     }
 
     /**
      * Add a file to staging area
      */
     public static void add(String fileName) {
-        if (!GitletIO.inCWD(fileName)) {
+        if (!repo.inCWD(fileName)) {
             abort("File does not exist.");
         }
-        Commit curr = Commit.fromFile(GitletIO.headHash());
+        Commit curr = Commit.fromFile(repo.headHash());
         Index index = Index.fromFile();
         index.unstageForRemoval(fileName);
         if (sameAs(curr, fileName)) {
@@ -45,14 +48,14 @@ public class Repo {
      */
     public static void commit(String message) {
         String hash = makeCommit(message, "");
-        GitletIO.updateBranch(GitletIO.head(), hash);
+        repo.updateBranch(repo.head(), hash);
     }
 
     /**
      * Remove a file from staging area
      */
     public static void rm(String fileName) {
-        Commit curr = Commit.fromFile(GitletIO.headHash());
+        Commit curr = Commit.fromFile(repo.headHash());
         Index index = Index.fromFile();
         boolean isTracked = curr.isTracked(fileName);
         boolean isStaged = index.isStaged(fileName);
@@ -61,18 +64,18 @@ public class Repo {
         }
         index.unstageForAddition(fileName);
         if (isTracked) {
-            GitletIO.rmCWD(fileName);
+            repo.rmCWD(fileName);
             index.stageForRemoval(fileName);
         }
         index.save();
     }
 
     public static void log() {
-        Commit.printHistory(GitletIO.headHash());
+        Commit.printHistory(repo.headHash());
     }
 
     public static void globalLog() {
-        for (String hash : GitletIO.getCommits()) {
+        for (String hash : repo.getCommits()) {
             Commit commit = Commit.fromFile(hash);
             System.out.print(commit);
         }
@@ -80,7 +83,7 @@ public class Repo {
 
     public static void find(String message) {
         boolean isFound = false;
-        for (String hash : GitletIO.getCommits()) {
+        for (String hash : repo.getCommits()) {
             Commit commit = Commit.fromFile(hash);
             if (commit.getMessage().equals(message)) {
                 isFound = true;
@@ -105,7 +108,7 @@ public class Repo {
         if (branchName == null) {
             String commitHash = params.get("commitHash");
             if (commitHash == null) {
-                commitHash = GitletIO.headHash();
+                commitHash = repo.headHash();
             }
             checkoutFile(commitHash, params.get("fileName"));
         } else {
@@ -114,33 +117,33 @@ public class Repo {
     }
 
     public static void branch(String branchName) {
-        if (GitletIO.isBranch(branchName)) {
+        if (repo.isBranch(branchName)) {
             abort("A branch with that name already exists.");
         }
-        GitletIO.updateBranch(branchName, GitletIO.headHash());
+        repo.updateBranch(branchName, repo.headHash());
     }
 
     public static void rmBranch(String branchName) {
-        if (!GitletIO.isBranch(branchName)) {
+        if (!repo.isBranch(branchName)) {
             abort("A branch with that name does not exist.");
         }
-        if (GitletIO.head().equals(branchName)) {
+        if (repo.head().equals(branchName)) {
             abort("Cannot remove the current branch.");
         }
-        GitletIO.rmBranch(branchName);
+        repo.rmBranch(branchName);
     }
 
     public static void reset(String commitHash) {
         replaceCWD(commitHash);
-        GitletIO.updateBranch(GitletIO.head(), commitHash);
+        repo.updateBranch(repo.head(), commitHash);
         Index.resetIndex();
     }
 
     public static void merge(String branchName) {
         /* Handle exceptions */
-        if (!GitletIO.isBranch(branchName)) {
+        if (!repo.isBranch(branchName)) {
             abort("A branch with that name does not exist.");
-        } else if (GitletIO.head().equals(branchName)) {
+        } else if (repo.head().equals(branchName)) {
             abort("Cannot merge a branch with itself.");
         }
         Index index = Index.fromFile();
@@ -149,8 +152,8 @@ public class Repo {
         }
 
         /* Easy cases */
-        Commit curr = Commit.fromFile(GitletIO.headHash());
-        String branchHash = GitletIO.getBranch(branchName);
+        Commit curr = Commit.fromFile(repo.headHash());
+        String branchHash = repo.getBranch(branchName);
         Commit mergedIn = Commit.fromFile(branchHash);
         Commit ancestor = latestAncestor(curr, mergedIn);
         untrackedAbort(curr, mergedIn);
@@ -184,10 +187,10 @@ public class Repo {
              * */
             if (sameCurrAnc) {
                 if (mergedIn.isTracked(f)) {
-                    GitletIO.writeCWD(f, mergedIn.fileHash(f));
+                    repo.writeCWD(f, mergedIn.fileHash(f));
                     index.stageForAddition(f);
                 } else {
-                    GitletIO.rmCWD(f);
+                    repo.rmCWD(f);
                     index.stageForRemoval(f);
                 }
             /* Both change the work */
@@ -205,21 +208,44 @@ public class Repo {
         // Necessary, because manipulating staging area + make commit will happen in one command,
         // but makeCommit() will retrieve index from file
         index.save();
-        String hash = makeCommit("Merged " + branchName + " into " + GitletIO.head() + ".", branchHash);
-        GitletIO.updateBranch(GitletIO.head(), hash);
+        String hash = makeCommit("Merged " + branchName + " into " + repo.head() + ".", branchHash);
+        repo.updateBranch(repo.head(), hash);
         if (hasConflict) {
             System.out.println("Encountered a merge conflict.");
         }
     }
 
     public static void addRemote(String[] args) {
+        // TODO: change the way to manipulate config later
+        String name = args[1];
+        String path = args[2];
         Config config = Config.fromFile();
-        config.addRemote(args[1], Paths.get(args[2]).toFile());
+        if (config.isRemote(name)) {
+            abort("A remote with that name already exists.");
+        }
+        config.addRemote(name, Paths.get(path).toFile());
     }
 
     public static void rmRemote(String name) {
         Config config = Config.fromFile();
+        if (!config.isRemote(name)) {
+            abort("A remote with that name does not exist.");
+        }
         config.rmRemote(name);
+    }
+
+    public static void fetch(String[] args) {
+        String name = args[1];
+        String branchName = args[2];
+        Config config = Config.fromFile();
+        if (!config.isRemote(name)) {
+            abort("A remote with that name does not exist.");
+        }
+        File path = config.getPath(name);
+        if (!path.exists()) {
+            abort("Remote directory not found.");
+        }
+//        repo.fetchRemote(path, branchName);
     }
 
     /**
@@ -232,7 +258,7 @@ public class Repo {
             content += """
                 <<<<<<< HEAD
                 %s\
-                """.formatted(GitletIO.getBlob(curr.fileHash(fileName)));
+                """.formatted(repo.getBlob(curr.fileHash(fileName)));
         } else {
             content += """
                 <<<<<<< HEAD
@@ -243,7 +269,7 @@ public class Repo {
                 =======
                 %s\
                 >>>>>>>
-                """.formatted(GitletIO.getBlob(other.fileHash(fileName)));
+                """.formatted(repo.getBlob(other.fileHash(fileName)));
         } else {
             content += """
                 =======
@@ -300,15 +326,15 @@ public class Repo {
      * Replace files in CWD with files tracked by a commit
      */
     private static void replaceCWD(String commitHash) {
-        Commit curr = Commit.fromFile(GitletIO.headHash());
+        Commit curr = Commit.fromFile(repo.headHash());
         Commit checkout = Commit.fromFile(commitHash);
         untrackedAbort(curr, checkout);
         // Only delete tracked files, not all workdir files(some files not tracked by both commits)
         for (String fileName : curr.trackedFiles()) {
-            GitletIO.rmCWD(fileName);
+            repo.rmCWD(fileName);
         }
         for (String fileName : checkout.trackedFiles()) {
-            GitletIO.writeCWD(fileName, checkout.fileHash(fileName));
+            repo.writeCWD(fileName, checkout.fileHash(fileName));
         }
     }
 
@@ -316,7 +342,7 @@ public class Repo {
      * Helper method to check untracked files when merging or checkout
      */
     private static void untrackedAbort(Commit curr, Commit other) {
-        List<String> workFiles = GitletIO.getCWD();
+        List<String> workFiles = repo.getRoot();
         for (String fileName : workFiles) {
             if (!curr.isTracked(fileName) && other.isTracked(fileName)) {
                 abort("There is an untracked file in the way; delete it, or add and commit it first.");
@@ -328,9 +354,9 @@ public class Repo {
      * Print view of branches, mark current branch with *
      */
     private static void printBranches() {
-        List<String> branches = GitletIO.getBranches();
+        List<String> branches = repo.getBranches();
         branches.sort(null);
-        String head = GitletIO.head();
+        String head = repo.head();
         System.out.println("=== Branches ===");
         for (String b : branches) {
             if (b.equals(head)) {
@@ -380,7 +406,7 @@ public class Repo {
         if (message.isEmpty()) {
             abort("Please enter a commit message.");
         }
-        Commit parent = Commit.fromFile(GitletIO.headHash());
+        Commit parent = Commit.fromFile(repo.headHash());
         // Cp content, not reference, this can not be detected by test
         // because the change to parent's blobs will not be saved to file
         Map<String, String> blobs = new HashMap<>(parent.getBlobs());
@@ -392,9 +418,9 @@ public class Repo {
         index.save();
         Commit commit;
         if (!mergedIn.isEmpty()) {
-            commit = new Commit(message, GitletIO.headHash(), mergedIn, blobs);
+            commit = new Commit(message, repo.headHash(), mergedIn, blobs);
         } else {
-            commit = new Commit(message, GitletIO.headHash(), blobs);
+            commit = new Commit(message, repo.headHash(), blobs);
         }
         commit.save();
         return commit.getHash();
@@ -438,17 +464,17 @@ public class Repo {
         if (!commit.isTracked(fileName)) {
             abort("File does not exist in that commit.");
         }
-        GitletIO.writeCWD(fileName, blobHash);
+        repo.writeCWD(fileName, blobHash);
     }
 
     private static void checkoutBranch(String branchName) {
-        if (!GitletIO.isBranch(branchName)) {
+        if (!repo.isBranch(branchName)) {
             abort("No such branch exists.");
-        } else if (branchName.equals(GitletIO.head())) {
+        } else if (branchName.equals(repo.head())) {
             abort("No need to checkout the current branch.");
         } else {
-            replaceCWD(GitletIO.getBranch(branchName));
-            GitletIO.setHead(branchName);
+            replaceCWD(repo.getBranch(branchName));
+            repo.setHead(branchName);
             Index.resetIndex();
         }
     }

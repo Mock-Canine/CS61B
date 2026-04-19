@@ -3,7 +3,8 @@ package gitlet;
 import java.io.File;
 import java.io.Serializable;
 import java.util.TreeMap;
-import static gitlet.Main.abort;
+
+import static gitlet.Repo.repo;
 
 /**
  * Represent the config of the gitlet repo, unlike Index,
@@ -13,7 +14,7 @@ public class Config implements Serializable {
     private final TreeMap<String, File> remotes = new TreeMap<>();
 
     public static Config fromFile() {
-        return GitletIO.getConfig();
+        return repo.getConfig();
     }
 
     /**
@@ -28,23 +29,34 @@ public class Config implements Serializable {
      * Record the remote name and path into config
      */
     public void addRemote(String name, File path) {
-        if (remotes.containsKey(name)) {
-            abort("A remote with that name already exists.");
-        }
         remotes.put(name, path);
         save();
     }
 
+    /**
+     * Remove the record of the remote repo
+     */
     public void rmRemote(String name) {
-        if (!remotes.containsKey(name)) {
-            abort("A remote with that name does not exist.");
-        }
         remotes.remove(name);
         save();
-        GitletIO.rmRemoteDir(name);
+        repo.rmRemoteDir(name);
+    }
+
+    /**
+     * Return whether the remote is recorded
+     */
+    public boolean isRemote(String name) {
+        return remotes.containsKey(name);
+    }
+
+    /**
+     * Get the path of a remote repo, null if not recorded
+     */
+    public File getPath(String name) {
+        return remotes.get(name);
     }
 
     private void save() {
-        GitletIO.saveConfig(this);
+        repo.saveConfig(this);
     }
 }

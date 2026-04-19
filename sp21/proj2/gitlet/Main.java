@@ -1,5 +1,7 @@
 package gitlet;
 
+import static gitlet.Repo.repo;
+
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author MockCanine
  */
@@ -14,7 +16,7 @@ public class Main {
         }
         String firstArg = args[0];
         if (!firstArg.equals("init")) {
-            GitletIO.isInRepo();
+            repo.isInRepo();
         }
         switch (firstArg) {
             case "init":
@@ -75,6 +77,10 @@ public class Main {
             case "rm-remote":
                 validateNumArgs(args, 2);
                 Repo.rmRemote(args[1]);
+                break;
+            case "fetch":
+                validateNumArgs(args, 3);
+                Repo.fetch(args);
                 break;
             default:
                 abort("No command with that name exists.");
