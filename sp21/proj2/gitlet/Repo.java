@@ -1,6 +1,7 @@
 package gitlet;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.*;
 
 import static gitlet.GitletIO.CWD;
@@ -36,7 +37,7 @@ public class Repo {
         } else {
             index.stageForAddition(fileName);
         }
-        index.saveIndex();
+        index.save();
     }
 
     /**
@@ -63,7 +64,7 @@ public class Repo {
             GitletIO.rmCWD(fileName);
             index.stageForRemoval(fileName);
         }
-        index.saveIndex();
+        index.save();
     }
 
     public static void log() {
@@ -203,12 +204,22 @@ public class Repo {
         }
         // Necessary, because manipulating staging area + make commit will happen in one command,
         // but makeCommit() will retrieve index from file
-        index.saveIndex();
+        index.save();
         String hash = makeCommit("Merged " + branchName + " into " + GitletIO.head() + ".", branchHash);
         GitletIO.updateBranch(GitletIO.head(), hash);
         if (hasConflict) {
             System.out.println("Encountered a merge conflict.");
         }
+    }
+
+    public static void addRemote(String[] args) {
+        Config config = Config.fromFile();
+        config.addRemote(args[1], Paths.get(args[2]).toFile());
+    }
+
+    public static void rmRemote(String name) {
+        Config config = Config.fromFile();
+        config.rmRemote(name);
     }
 
     /**
@@ -378,7 +389,7 @@ public class Repo {
             abort("No changes added to the commit.");
         }
         index.commit(blobs);
-        index.saveIndex();
+        index.save();
         Commit commit;
         if (!mergedIn.isEmpty()) {
             commit = new Commit(message, GitletIO.headHash(), mergedIn, blobs);

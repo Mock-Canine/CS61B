@@ -32,13 +32,13 @@ public class Index implements Serializable {
      */
     public static void resetIndex() {
         Index index = new Index();
-        index.saveIndex();
+        index.save();
     }
 
     /**
      * Create or overwrite index file
      */
-    public void saveIndex() {
+    public void save() {
         GitletIO.saveIndex(this);
     }
 

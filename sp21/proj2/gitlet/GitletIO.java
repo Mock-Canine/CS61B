@@ -2,6 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.util.List;
+
 import static gitlet.Main.abort;
 import static gitlet.Utils.sha1;
 
@@ -15,7 +16,11 @@ import static gitlet.Utils.sha1;
  *       - heads/ -- folder tracking local branch header
  *          - master -- file containing a string of branch hash
  *          - xx -- other branches
+ *       - remotes/ -- folder for remote repos
+ *          - xx/ -- folder named by remote repo
+ *             - xx -- file containing a string of remote branch hash
  *    - HEAD -- file containing the branch name under refs/heads/ head pointer points to
+ *    - config -- file containing location of remote repos
  *    - index -- file(staging area) tracking files for addition or removal
  */
 public class GitletIO {
@@ -32,7 +37,10 @@ public class GitletIO {
     /** Initial files of gitlet filesystem */
     private static final File HEAD = Utils.join(GITLET, "HEAD");
     private static final File INDEX = Utils.join(GITLET, "index");
-
+    /** directory for remote repos */
+    private static final File REMOTES = Utils.join(REFS, "remotes");
+    /** file for remote repos */
+    private static final File CONFIG = Utils.join(GITLET, "config");
 
     /**
      * Init the gitlet filesystem
@@ -48,8 +56,9 @@ public class GitletIO {
         mkdir(COMMITS);
         mkdir(BLOBS);
         mkdir(HEADS);
-        // Create clean staging area
+        // Create clean staging area and config
         Index.resetIndex();
+        Config.initConfig();
     }
 
     /**
@@ -167,7 +176,9 @@ public class GitletIO {
      */
     public static void rmBranch(String branchName) {
         File fp = Utils.join(HEADS, branchName);
-        fp.delete();
+        if (!fp.delete()) {
+            abort("Fail to remove a branch.");
+        }
     }
 
     /**
@@ -246,6 +257,34 @@ public class GitletIO {
     public static String getBlob(String blobHash) {
         File fp = Utils.join(BLOBS, blobHash);
         return Utils.readContentsAsString(fp);
+    }
+
+    /* IO for remote operations */
+    /**
+     * Retrieve config from its file
+     */
+    public static Config getConfig() {
+        return Utils.readObject(CONFIG, Config.class);
+    }
+
+    /**
+     * Save config to its file
+     */
+    public static void saveConfig(Config config) {
+        Utils.writeObject(CONFIG, config);
+    }
+
+    /**
+     * Remove the actual folder for remote if exists
+     * Assume valid remote name
+     */
+    public static void rmRemoteDir(String name) {
+        File fp = Utils.join(REMOTES, name);
+        if (fp.exists()) {
+            if (!fp.delete()) {
+                abort("Fail to remove the remote directory");
+            }
+        }
     }
 
     /**
