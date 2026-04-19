@@ -186,6 +186,7 @@ public class Repo {
                     GitletIO.writeCWD(f, mergedIn.fileHash(f));
                     index.stageForAddition(f);
                 } else {
+                    GitletIO.rmCWD(f);
                     index.stageForRemoval(f);
                 }
             /* Both change the work */
@@ -203,7 +204,7 @@ public class Repo {
         // Necessary, because manipulating staging area + make commit will happen in one command,
         // but makeCommit() will retrieve index from file
         index.saveIndex();
-        String hash = makeCommit("Merged " + branchName + " into " + GitletIO.head(), branchHash);
+        String hash = makeCommit("Merged " + branchName + " into " + GitletIO.head() + ".", branchHash);
         GitletIO.updateBranch(GitletIO.head(), hash);
         if (hasConflict) {
             System.out.println("Encountered a merge conflict.");
