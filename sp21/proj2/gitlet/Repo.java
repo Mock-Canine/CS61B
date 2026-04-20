@@ -217,37 +217,30 @@ public class Repo {
     }
 
     public static void addRemote(String[] args) {
-        // TODO: change the way to manipulate config later, repo does not need to know the config
         String name = args[1];
         String path = args[2];
-        Config config = Config.fromFile();
-        if (config.isRemote(name)) {
+        if (REPO.isRemote(name)) {
             abort("A remote with that name already exists.");
         }
-        // TODO: method should not rely on the existence of remoteName folder
-        REPO.initRemote(name);
-        config.addRemote(name, Paths.get(path).toFile());
+        REPO.addRemote(name, path);
     }
 
     public static void rmRemote(String name) {
-        Config config = Config.fromFile();
-        if (!config.isRemote(name)) {
+        if (!REPO.isRemote(name)) {
             abort("A remote with that name does not exist.");
         }
-        config.rmRemote(name);
+        REPO.rmRemote(name);
     }
 
     public static void fetch(String[] args) {
         String name = args[1];
         String branchName = args[2];
-        Config config = Config.fromFile();
-        // Assume config has recorded the remote repo
-        File path = config.getPath(name);
-        // TODO: may be a bug
-        if (!path.exists()) {
+        File fp = Paths.get(REPO.getRemote(name)).toFile();
+        if (!REPO.isRemote(name) || !fp.exists()) {
             abort("Remote directory not found.");
         }
-        FileSystem remoteRepo = new FileSystem(path.getParentFile());
+        // Trim the .gitlet/
+        FileSystem remoteRepo = new FileSystem(fp.getParentFile());
         if (!remoteRepo.isBranch(branchName)) {
             abort("That remote does not have that branch.");
         }
@@ -296,22 +289,24 @@ public class Repo {
     private static void conflictFile(Commit curr, Commit other, String fileName) {
         String content = "";
         if (curr.isTracked(fileName)) {
+            byte[] currContent = REPO.getBlob(curr.getBlobHash(fileName));
             // Rely on the newline of the file itself
             content += """
                 <<<<<<< HEAD
                 %s\
-                """.formatted((Object) REPO.getBlob(curr.getBlobHash(fileName)));
+                """.formatted(new String(currContent));
         } else {
             content += """
                 <<<<<<< HEAD
                 """;
         }
         if (other.isTracked(fileName)) {
+            byte[] otherContent = REPO.getBlob(other.getBlobHash(fileName));
             content += """
                 =======
                 %s\
                 >>>>>>>
-                """.formatted((Object) REPO.getBlob(other.getBlobHash(fileName)));
+                """.formatted(new String(otherContent));
         } else {
             content += """
                 =======

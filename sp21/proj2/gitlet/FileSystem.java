@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.*;
 
 import static gitlet.Main.abort;
-
+// TODO: check whether the abort is proper
 /** Represents gitlet repository filesystem and provide IO operations
  * .gitlet/ filesystem
  * .gitlet/ -- gitlet repository
@@ -17,9 +17,9 @@ import static gitlet.Main.abort;
  *          - xx -- other branches
  *       - remotes/ -- folder for remote repos
  *          - xx/ -- folder named by remote repo
+ *             - path -- file containing the path to the remote repo
  *             - xx -- file containing a string of remote branch hash
  *    - HEAD -- file containing the branch name under refs/heads/ head pointer points to
- *    - config -- file containing location of remote repos
  *    - index -- file(staging area) tracking files for addition or removal
  */
 public class FileSystem {
@@ -36,8 +36,6 @@ public class FileSystem {
     private final File index;
     /** directory for remote repos */
     private final File remotes;
-    /** file for remote repos */
-    private final File config;
 
     /**
      * Create a gitlet version control system under the root directory
@@ -52,7 +50,6 @@ public class FileSystem {
         head = Utils.join(gitlet, "HEAD");
         index = Utils.join(gitlet, "index");
         remotes = Utils.join(refs, "remotes");
-        config = Utils.join(gitlet, "config");
     }
 
     /**
@@ -62,16 +59,16 @@ public class FileSystem {
         if (gitlet.exists()) {
             abort("A Gitlet version-control system already exists in the current directory.");
         }
-        // Create required folders, order of creating matters
+        // Create repo folders, order of creating matters
         mkdir(gitlet);
         mkdir(objects);
         mkdir(refs);
         mkdir(commits);
         mkdir(blobs);
         mkdir(heads);
-        // Create clean staging area and config
+        mkdir(remotes);
+        // Create clean staging area
         Index.resetIndex();
-        Config.initConfig();
     }
 
     /**
@@ -91,6 +88,7 @@ public class FileSystem {
      * With valid format, it should also indicate a unique commit without ambiguity
      * Abort the program if provide invalid hash
      */
+    // TODO: may be should not throw abort here
     public File commitPath(String hash) {
         if (!hash.matches("^[0-9a-f]{4,40}$")) {
             abort("No commit with that id exists.");
@@ -241,32 +239,41 @@ public class FileSystem {
     }
 
     /* IO for remote operations */
+    private final String pathFile = "path";
+
     /**
-     * Create necessary folders for remote operation
+     * Record the remote repo
      */
-    public void initRemote(String remoteName) {
-        if (!remotes.exists()) {
-            mkdir(remotes);
+    public void addRemote(String remoteName, String path) {
+        File fp = Utils.join(remotes, remoteName);
+        if (!fp.exists()) {
+            mkdir(fp);
         }
-        File remote = Utils.join(remotes, remoteName);
-        if (!remote.exists()) {
-            mkdir(remote);
-        }
+        File pp = Utils.join(fp, pathFile);
+        Utils.writeContents(pp, path);
     }
 
     /**
-     * Path for config file
+     * Check whether the remote repo has been recorded
      */
-    // TODO: make config private from repo
-    public File configPath() {
-        return config;
+    public boolean isRemote(String remoteName) {
+        File fp = Utils.join(remotes, remoteName);
+        return fp.exists();
     }
 
     /**
-     * Remove the actual folder for remote if exists
-     * Assume valid remote name
+     * Return the path to the remote repo
+     * Assume remote repo has been recorded
      */
-    public void rmRemoteDir(String remoteName) {
+    public String getRemote(String remoteName) {
+        File fp = Utils.join(remotes, remoteName, pathFile);
+        return Utils.readContentsAsString(fp);
+    }
+
+    /**
+     * Unrecord the remote repo
+     */
+    public void rmRemote(String remoteName) {
         File fp = Utils.join(remotes, remoteName);
         if (fp.exists()) {
             if (!fp.delete()) {
@@ -282,6 +289,15 @@ public class FileSystem {
         File fp = Utils.join(remotes, remoteName, branchName);
         Utils.writeContents(fp, hash);
     }
+
+    // TODO: use a file under remoteName/ to store url not the whole class
+        // TODO: and Repo will only has the interface of REPO, not commit and index
+        // TODO: make the save and fromFile() method in commit and index class transfer to this class,
+        // need a Filesystem instance to do this operation
+        // TODO: use a saveState() after the switch in main class, avoid manually saving index every time
+        // TODO: pay attention to the merge(), which first save index and then commit,
+        // TODO: the makeCommit() method should first check the index map of this class, then decide to call index.fromFIle() or not
+        // TODO: may let the commit and index class only expose to the filesystem, so no need to change the actual code of these two
 
     /**
      * Return the file names inside a folder in the gitlet repo
