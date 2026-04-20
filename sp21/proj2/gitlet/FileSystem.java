@@ -147,7 +147,7 @@ public class FileSystem {
     /**
      * Update the branch pointer to a commit.
      * Create new branch if not exists.
-     * Assume valid commitHash.
+     * Assume local branchName and valid commitHash.
      */
     public void updateBranch(String branchName, String hash) {
         File fp = Utils.join(heads, branchName);
@@ -156,23 +156,36 @@ public class FileSystem {
 
     /**
      * Check if the name represents a valid branch
+     * Accept remote branch with the format remoteName/branchName
      */
     public boolean isBranch(String branchName) {
-        // Do not use listFiles(), this is in O(1) time
-        return Utils.join(heads, branchName).exists();
+        String[] parsed = branchName.split("/");
+        if (parsed.length == 1) {
+            // Do not use listFiles(), this is in O(1) time
+            return Utils.join(heads, branchName).exists();
+        }
+        File fp = Utils.join(remotes, parsed[0], parsed[1]);
+        return fp.exists();
     }
 
     /**
      * Return branch hash
      * Assume branchName is valid
+     * Accept remote branch with the format remoteName/branchName
      */
     public String getBranch(String branchName) {
-        File fp = Utils.join(heads, branchName);
+        String[] parsed = branchName.split("/");
+        File fp;
+        if (parsed.length == 1) {
+            fp = Utils.join(heads, branchName);
+        } else {
+            fp = Utils.join(remotes, parsed[0], parsed[1]);
+        }
         return Utils.readContentsAsString(fp);
     }
 
     /**
-     * Remove branch
+     * Remove local branch
      * Assume branchName is valid
      */
     public void rmBranch(String branchName) {
@@ -183,7 +196,7 @@ public class FileSystem {
     }
 
     /**
-     * Return all the branch names of this repo
+     * Return all the local branch names of this repo
      */
     public List<String> getBranches() {
         return listFiles(heads);
@@ -192,6 +205,7 @@ public class FileSystem {
     /**
      * Set head pointer to the branch
      * Assume branchName is valid
+     * Accept remote branch with the format remoteName/branchName
      */
     public void setHead(String branchName) {
         Utils.writeContents(head, branchName);

@@ -536,6 +536,9 @@ public class Repo {
         writeCWD(fileName, REPO.getBlob(blobHash));
     }
 
+    /**
+     * Input may be R1/master, R1 is the remote repo name
+     */
     private static void checkoutBranch(String branchName) {
         if (!REPO.isBranch(branchName)) {
             abort("No such branch exists.");
