@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.TreeMap;
 
-import static gitlet.Repo.repo;
+import static gitlet.Repo.REPO;
 
 /**
  * Represent the config of the gitlet repo, unlike Index,
@@ -13,8 +13,9 @@ import static gitlet.Repo.repo;
 public class Config implements Serializable {
     private final TreeMap<String, File> remotes = new TreeMap<>();
 
+    // TODO: this class may be redundant, may be integrate into filesystem
     public static Config fromFile() {
-        return repo.getConfig();
+        return Utils.readObject(REPO.configPath(), Config.class);
     }
 
     /**
@@ -39,7 +40,7 @@ public class Config implements Serializable {
     public void rmRemote(String name) {
         remotes.remove(name);
         save();
-        repo.rmRemoteDir(name);
+        REPO.rmRemoteDir(name);
     }
 
     /**
@@ -57,6 +58,6 @@ public class Config implements Serializable {
     }
 
     private void save() {
-        repo.saveConfig(this);
+        Utils.writeObject(REPO.configPath(), this);
     }
 }

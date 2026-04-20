@@ -5,7 +5,7 @@ import java.io.Serializable;
 import java.util.*;
 
 import static gitlet.Repo.CWD;
-import static gitlet.Repo.repo;
+import static gitlet.Repo.REPO;
 import static gitlet.Utils.sha1;
 
 /**
@@ -25,7 +25,7 @@ public class Index implements Serializable {
      * Retrieve content from index file
      */
     public static Index fromFile() {
-        return repo.getIndex();
+        return Utils.readObject(REPO.indexPath(), Index.class);
     }
 
     /**
@@ -40,7 +40,7 @@ public class Index implements Serializable {
      * Create or overwrite index file
      */
     public void save() {
-        repo.saveIndex(this);
+        Utils.writeObject(REPO.indexPath(), this);
     }
 
     /**
@@ -52,7 +52,7 @@ public class Index implements Serializable {
         byte[] content = Utils.readContents(fp);
         String hash = sha1((Object) content);
         addition.put(fileName, hash);
-        repo.saveBlob(hash, content);
+        REPO.saveBlob(hash, content);
     }
 
     /**

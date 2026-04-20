@@ -1,6 +1,6 @@
 package gitlet;
 
-import static gitlet.Repo.repo;
+import static gitlet.Repo.REPO;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author MockCanine
@@ -16,7 +16,7 @@ public class Main {
         }
         String firstArg = args[0];
         if (!firstArg.equals("init")) {
-            repo.isInRepo();
+            REPO.isInRepo();
         }
         switch (firstArg) {
             case "init":

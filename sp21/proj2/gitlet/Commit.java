@@ -2,11 +2,10 @@ package gitlet;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.Date;
 import java.util.*;
 
-import static gitlet.Repo.repo;
+import static gitlet.Repo.REPO;
 
 /**
  * Represents a gitlet commit object.
@@ -27,7 +26,7 @@ public class Commit implements Serializable {
     /** The hash of the commit, will be set when retrieved from file or initialized */
     private transient String hash;
 
-    /* Methods for retrieve and save commit object from/to filesystem */
+    /* Methods for retrieve commit object from filesystem */
     /**
      * Retrieve a commit object from file
      * @param commitHash valid format: 4-40 characters long, each represent a
@@ -36,7 +35,14 @@ public class Commit implements Serializable {
      * Abort the program if provide invalid hash
      */
     public static Commit fromFile(String commitHash) {
-        Commit commit = repo.getCommit(commitHash);
+        return fromFile(commitHash, REPO);
+    }
+
+    /**
+     * Retrieve a commit object from any valid gitlet repository
+     */
+    public static Commit fromFile(String commitHash, FileSystem repo) {
+        Commit commit = Utils.readObject(repo.commitPath(commitHash), Commit.class);
         commit.hash = commitHash;
         return commit;
     }
@@ -53,45 +59,35 @@ public class Commit implements Serializable {
         }
     }
 
-    /**
-     * Save the commit
-     */
-    public void save() {
-        byte[] serialized = Utils.serialize(this);
-        repo.saveCommit(serialized);
-    }
-
     /* Constructors */
     /**
      * Constructor for initial commit, no parent
      */
-    public Commit(String msg) {
-        message = msg;
-        parent1Hash = "";
-        parent2Hash = "";
-        blobs = new HashMap<>();
-        date = Date.from(Instant.EPOCH);
-        assignHash();
+    public Commit(String msg, Date date) {
+        this(msg, "", "", new HashMap<>(), date);
     }
 
     /**
      * Constructor for non-merge commit
+     * Provide current commit as its parent
      */
-    public Commit(String msg, String curr, Map<String, String> blobs) {
-        this(msg, curr, "", blobs);
+    public Commit(String msg, String parent, Map<String, String> blobs, Date date) {
+        this(msg, parent, "", blobs, date);
     }
 
     /**
      * Constructor for merge commit
-     * Provide current commit and mergedIn commit as its two parents
+     * Provide current commit and mergedIn commit as its two parents in order
      */
-    public Commit(String msg, String curr, String mergedIn, Map<String, String> blobs) {
+    public Commit(String msg, String parent1, String parent2, Map<String, String> blobs, Date date) {
         message = msg;
-        parent1Hash = curr;
-        parent2Hash = mergedIn;
+        parent1Hash = parent1;
+        parent2Hash = parent2;
         this.blobs = new HashMap<>(blobs);
-        date = Date.from(Instant.now());
-        assignHash();
+        this.date = date;
+        byte[] serialized = Utils.serialize(this);
+        hash = Utils.sha1((Object) serialized);
+        REPO.saveCommit(hash, serialized);
     }
 
     /* Observer methods */
@@ -105,7 +101,7 @@ public class Commit implements Serializable {
     /**
      * Return hash of the file being tracked, empty string if not tracked
      */
-    public String fileHash(String fileName) {
+    public String getBlobHash(String fileName) {
         // Avoid null return value
         String fileHash =  blobs.get(fileName);
         return fileHash == null ? "" : fileHash;
@@ -114,7 +110,7 @@ public class Commit implements Serializable {
     /**
      * Return the file names tracked by the commit
      */
-    public Set<String> trackedFiles() {
+    public Set<String> getFiles() {
         // Cp content, not the reference
         return new HashSet<>(blobs.keySet());
     }
@@ -190,10 +186,5 @@ public class Commit implements Serializable {
     @Override
     public int hashCode() {
         return hash.hashCode();
-    }
-
-    private void assignHash() {
-        byte[] serialized = Utils.serialize(this);
-        this.hash = Utils.sha1((Object) serialized);
     }
 }

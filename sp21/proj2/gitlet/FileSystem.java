@@ -1,11 +1,9 @@
 package gitlet;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.*;
 
 import static gitlet.Main.abort;
-import static gitlet.Utils.sha1;
 
 /** Represents gitlet repository filesystem and provide IO operations
  * .gitlet/ filesystem
@@ -24,9 +22,7 @@ import static gitlet.Utils.sha1;
  *    - config -- file containing location of remote repos
  *    - index -- file(staging area) tracking files for addition or removal
  */
-public class fileSystem {
-    /** The root directory of this gitlet filesystem */
-    private final File root;
+public class FileSystem {
     /** The .gitlet directory. */
     private final File gitlet;
     /** Initial directories of gitlet filesystem */
@@ -43,8 +39,10 @@ public class fileSystem {
     /** file for remote repos */
     private final File config;
 
-    public fileSystem(File root) {
-        this.root = root;
+    /**
+     * Create a gitlet version control system under the root directory
+     */
+    public FileSystem(File root) {
         gitlet = Utils.join(root, ".gitlet");
         objects = Utils.join(gitlet, "objects");
         refs = Utils.join(gitlet, "refs");
@@ -85,39 +83,29 @@ public class fileSystem {
         }
     }
 
-    /* IO for commit operations, call the corresponding version in Commit to get and save */
+    /* IO for commit operations, commit hash is the identifier. */
     /**
-     * Retrieve a commit object from file
-     * @param commitHash valid format: 4-40 characters long, each represent a
+     * Return the file pointer if input represents a commit
+     * @param hash valid format: 4-40 characters long, each represent a
      *             lower case hex number, without any prefix like 0x, 0X, etc.
      * With valid format, it should also indicate a unique commit without ambiguity
      * Abort the program if provide invalid hash
      */
-    public Commit getCommit(String commitHash) {
-        File fp = parsePath(commitHash);
-        if (fp == null) {
-            abort("No commit with that id exists.");
-        }
-        return Utils.readObject(fp, Commit.class);
-    }
-
-    /**
-     * Return the file pointer if input represents a commit, null otherwise
-     * @param hash valid format: 4-40 characters long, each represent a
-     *             lower case hex number, without any prefix like 0x, 0X, etc.
-     * With valid format, it should also indicate a unique commit without ambiguity
-     */
-    private File parsePath(String hash) {
+    public File commitPath(String hash) {
         if (!hash.matches("^[0-9a-f]{4,40}$")) {
-            return null;
+            abort("No commit with that id exists.");
         }
         int hashLen = 40;
         if (hash.length() == hashLen) {
             File fp = Utils.join(commits, hash);
-            return fp.exists() ? fp : null;
+            if (fp.exists()) {
+                return fp;
+            } else {
+                abort("No commit with that id exists.");
+            }
         }
         int num = 0;
-        String fullHash = null;
+        String fullHash = "";
         for (String commitHash : listFiles(commits)) {
             if (commitHash.startsWith(hash)) {
                 num++;
@@ -127,15 +115,14 @@ public class fileSystem {
         if (num == 1) {
             return Utils.join(commits, fullHash);
         }
+        abort("No commit with that id exists.");
         return null;
     }
 
     /**
      * Save the serialized commit object to filesystem
      */
-    public void saveCommit(byte[] content) {
-        // Only need the content as param, use hash as the name is just the design choice
-        String hash = sha1((Object) content);
+    public void saveCommit(String hash, byte[] content) {
         File fp = Utils.join(commits, hash);
         Utils.writeContents(fp, (Object) content);
     }
@@ -147,13 +134,17 @@ public class fileSystem {
         return listFiles(commits);
     }
 
-    /* IO for index operations, call the corresponding version in Index to get and save */
-    public Index getIndex() {
-        return Utils.readObject(index, Index.class);
+    /**
+     * Check whether the 40 character string represents a valid commit in this repo
+     */
+    public boolean isCommit(String hash) {
+        File fp = Utils.join(commits, hash);
+        return fp.exists();
     }
 
-    public void saveIndex(Index index) {
-        Utils.writeObject(this.index, index);
+    /* IO for index operations */
+    public File indexPath() {
+        return index;
     }
 
     /* IO for branch operations */
@@ -162,9 +153,9 @@ public class fileSystem {
      * Create new branch if not exists.
      * Assume valid commitHash.
      */
-    public void updateBranch(String branchName, String commitHash) {
+    public void updateBranch(String branchName, String hash) {
         File fp = Utils.join(heads, branchName);
-        Utils.writeContents(fp, commitHash);
+        Utils.writeContents(fp, hash);
     }
 
     /**
@@ -224,76 +215,59 @@ public class fileSystem {
         return Utils.readContentsAsString(head);
     }
 
-    /* IO for blobs and working directory files */
+    /* IO for blobs, use blob hash as identifier */
     /**
-     * Check whether the file is in the CWD
+     * Save the content to blobs
      */
-    public boolean inCWD(String fileName) {
-        File fp = Utils.join(root, fileName);
-        return fp.exists();
-    }
-
-    /**
-     * remove file from the CWD
-     */
-    public void rmCWD(String fileName) {
-        File fp = Utils.join(root, fileName);
-        Utils.restrictedDelete(fp);
-    }
-
-    /**
-     * create or overwrite file in the CWD with a file tracked by a commit
-     */
-    public void writeCWD(String fileName, String blobHash) {
-        File bp = Utils.join(blobs, blobHash);
-        File fp = Utils.join(root, fileName);
-        Utils.writeContents(fp, (Object) Utils.readContents(bp));
-    }
-
-    /**
-     * get files in the CWD
-     */
-    public List<String> getRoot() {
-        return listFiles(root);
-    }
-
-    /**
-     * Save the file in CWD to blobs
-     */
-    public void saveBlob(String fileHash, byte[] content) {
-        File blob = Utils.join(blobs, fileHash);
-        Utils.writeContents(blob, (Object) content);
+    public void saveBlob(String blobHash, byte[] content) {
+        File fp = Utils.join(blobs, blobHash);
+        Utils.writeContents(fp, (Object) content);
     }
 
     /**
      * Return the content of a blob by its hash
      */
-    public String getBlob(String blobHash) {
+    public byte[] getBlob(String blobHash) {
         File fp = Utils.join(blobs, blobHash);
-        return Utils.readContentsAsString(fp);
+        return Utils.readContents(fp);
+    }
+
+    /**
+     * Check whether blobHash represents a blob in the repo
+     */
+    public boolean isBlob(String blobHash) {
+        File fp = Utils.join(blobs, blobHash);
+        return fp.exists();
     }
 
     /* IO for remote operations */
     /**
-     * Retrieve config from its file
+     * Create necessary folders for remote operation
      */
-    public Config getConfig() {
-        return Utils.readObject(config, Config.class);
+    public void initRemote(String remoteName) {
+        if (!remotes.exists()) {
+            mkdir(remotes);
+        }
+        File remote = Utils.join(remotes, remoteName);
+        if (!remote.exists()) {
+            mkdir(remote);
+        }
     }
 
     /**
-     * Save config to its file
+     * Path for config file
      */
-    public void saveConfig(Config config) {
-        Utils.writeObject(this.config, config);
+    // TODO: make config private from repo
+    public File configPath() {
+        return config;
     }
 
     /**
      * Remove the actual folder for remote if exists
      * Assume valid remote name
      */
-    public void rmRemoteDir(String name) {
-        File fp = Utils.join(remotes, name);
+    public void rmRemoteDir(String remoteName) {
+        File fp = Utils.join(remotes, remoteName);
         if (fp.exists()) {
             if (!fp.delete()) {
                 abort("Fail to remove the remote directory");
@@ -302,51 +276,11 @@ public class fileSystem {
     }
 
     /**
-     * Fetch from a remote repo
-     * Assume valid path, remote name
+     * Update the remote branch to a commit in the local repo
      */
-    public void fetchRemote(File path, String name, String branchName) {
-        File remoteBranch = Utils.join(path, relativePath(heads), branchName);
-        if (!remoteBranch.exists()) {
-            abort("That remote does not have that branch.");
-        }
-        mkRemoteDir(name);
-        String headHash = Utils.readContentsAsString(remoteBranch);
-        File branch = Utils.join(remotes, name, branchName);
-        Utils.writeContents(branch, headHash);
-    }
-
-    private void mkRemoteDir(String name) {
-        if (!remotes.exists()) {
-            mkdir(remotes);
-        }
-        File remote = Utils.join(remotes, name);
-        if (!remote.exists()) {
-            mkdir(remote);
-        }
-    }
-
-    /**
-     * Retrieve non-common commits and blobs from remote repo and save to local repo
-     */
-    private void saveRemoteCommits(File path, String headHash) {
-        File remoteCommits = Utils.join(path, relativePath(commits));
-        File remoteBlobs = Utils.join(path, relativePath(blobs));
-        Queue<String> pq = new ArrayDeque<>();
-        Set<String> marked = new HashSet<>();
-        pq.add(headHash);
-        while (!pq.isEmpty()) {
-            String hash = pq.poll();
-        }
-    }
-
-    /**
-     * Return a string view of relative path between repo root and any sub folder/file
-     */
-    private String relativePath(File subFolder) {
-        Path root = gitlet.toPath();
-        Path sub = subFolder.toPath();
-        return root.relativize(sub).toString();
+    public void updateRemoteBranch(String remoteName, String branchName, String hash) {
+        File fp = Utils.join(remotes, remoteName, branchName);
+        Utils.writeContents(fp, hash);
     }
 
     /**
@@ -368,5 +302,4 @@ public class fileSystem {
             abort("Fail to construct gitlet filesystem");
         }
     }
-
 }

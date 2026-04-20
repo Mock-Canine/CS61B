@@ -2,6 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.*;
 
 import static gitlet.Main.abort;
@@ -13,26 +14,26 @@ public class Repo {
     /** Initial branch name */
     public static final String DEFAULT_BRANCH = "master";
     /** Filesystem represent repo under CWD */
-    public static final fileSystem repo = new fileSystem(CWD);
+    public static final FileSystem REPO = new FileSystem(CWD);
 
     /**
      * Init gitlet repo and make initial commit
      */
     public static void init() {
-        repo.init();
-        repo.setHead(DEFAULT_BRANCH);
+        REPO.init();
+        REPO.setHead(DEFAULT_BRANCH);
         String hash = initialCommit();
-        repo.updateBranch(repo.head(), hash);
+        REPO.updateBranch(REPO.head(), hash);
     }
 
     /**
      * Add a file to staging area
      */
     public static void add(String fileName) {
-        if (!repo.inCWD(fileName)) {
+        if (!inCWD(fileName)) {
             abort("File does not exist.");
         }
-        Commit curr = Commit.fromFile(repo.headHash());
+        Commit curr = Commit.fromFile(REPO.headHash());
         Index index = Index.fromFile();
         index.unstageForRemoval(fileName);
         if (sameAs(curr, fileName)) {
@@ -48,14 +49,14 @@ public class Repo {
      */
     public static void commit(String message) {
         String hash = makeCommit(message, "");
-        repo.updateBranch(repo.head(), hash);
+        REPO.updateBranch(REPO.head(), hash);
     }
 
     /**
      * Remove a file from staging area
      */
     public static void rm(String fileName) {
-        Commit curr = Commit.fromFile(repo.headHash());
+        Commit curr = Commit.fromFile(REPO.headHash());
         Index index = Index.fromFile();
         boolean isTracked = curr.isTracked(fileName);
         boolean isStaged = index.isStaged(fileName);
@@ -64,18 +65,18 @@ public class Repo {
         }
         index.unstageForAddition(fileName);
         if (isTracked) {
-            repo.rmCWD(fileName);
+            rmCWD(fileName);
             index.stageForRemoval(fileName);
         }
         index.save();
     }
 
     public static void log() {
-        Commit.printHistory(repo.headHash());
+        Commit.printHistory(REPO.headHash());
     }
 
     public static void globalLog() {
-        for (String hash : repo.getCommits()) {
+        for (String hash : REPO.getCommits()) {
             Commit commit = Commit.fromFile(hash);
             System.out.print(commit);
         }
@@ -83,7 +84,7 @@ public class Repo {
 
     public static void find(String message) {
         boolean isFound = false;
-        for (String hash : repo.getCommits()) {
+        for (String hash : REPO.getCommits()) {
             Commit commit = Commit.fromFile(hash);
             if (commit.getMessage().equals(message)) {
                 isFound = true;
@@ -108,7 +109,7 @@ public class Repo {
         if (branchName == null) {
             String commitHash = params.get("commitHash");
             if (commitHash == null) {
-                commitHash = repo.headHash();
+                commitHash = REPO.headHash();
             }
             checkoutFile(commitHash, params.get("fileName"));
         } else {
@@ -117,33 +118,33 @@ public class Repo {
     }
 
     public static void branch(String branchName) {
-        if (repo.isBranch(branchName)) {
+        if (REPO.isBranch(branchName)) {
             abort("A branch with that name already exists.");
         }
-        repo.updateBranch(branchName, repo.headHash());
+        REPO.updateBranch(branchName, REPO.headHash());
     }
 
     public static void rmBranch(String branchName) {
-        if (!repo.isBranch(branchName)) {
+        if (!REPO.isBranch(branchName)) {
             abort("A branch with that name does not exist.");
         }
-        if (repo.head().equals(branchName)) {
+        if (REPO.head().equals(branchName)) {
             abort("Cannot remove the current branch.");
         }
-        repo.rmBranch(branchName);
+        REPO.rmBranch(branchName);
     }
 
     public static void reset(String commitHash) {
         replaceCWD(commitHash);
-        repo.updateBranch(repo.head(), commitHash);
+        REPO.updateBranch(REPO.head(), commitHash);
         Index.resetIndex();
     }
 
     public static void merge(String branchName) {
         /* Handle exceptions */
-        if (!repo.isBranch(branchName)) {
+        if (!REPO.isBranch(branchName)) {
             abort("A branch with that name does not exist.");
-        } else if (repo.head().equals(branchName)) {
+        } else if (REPO.head().equals(branchName)) {
             abort("Cannot merge a branch with itself.");
         }
         Index index = Index.fromFile();
@@ -152,8 +153,8 @@ public class Repo {
         }
 
         /* Easy cases */
-        Commit curr = Commit.fromFile(repo.headHash());
-        String branchHash = repo.getBranch(branchName);
+        Commit curr = Commit.fromFile(REPO.headHash());
+        String branchHash = REPO.getBranch(branchName);
         Commit mergedIn = Commit.fromFile(branchHash);
         Commit ancestor = latestAncestor(curr, mergedIn);
         untrackedAbort(curr, mergedIn);
@@ -166,9 +167,9 @@ public class Repo {
 
         /* Complex case, compare fileHash between the three */
         Set<String> fileNames = new HashSet<>();
-        fileNames.addAll(curr.trackedFiles());
-        fileNames.addAll(mergedIn.trackedFiles());
-        fileNames.addAll(ancestor.trackedFiles());
+        fileNames.addAll(curr.getFiles());
+        fileNames.addAll(mergedIn.getFiles());
+        fileNames.addAll(ancestor.getFiles());
         boolean hasConflict = false;
         for (String f : fileNames) {
             /* Indicate the pair with same file state */
@@ -187,10 +188,10 @@ public class Repo {
              * */
             if (sameCurrAnc) {
                 if (mergedIn.isTracked(f)) {
-                    repo.writeCWD(f, mergedIn.fileHash(f));
+                    writeCWD(f, REPO.getBlob(mergedIn.getBlobHash(f)));
                     index.stageForAddition(f);
                 } else {
-                    repo.rmCWD(f);
+                    rmCWD(f);
                     index.stageForRemoval(f);
                 }
             /* Both change the work */
@@ -208,21 +209,23 @@ public class Repo {
         // Necessary, because manipulating staging area + make commit will happen in one command,
         // but makeCommit() will retrieve index from file
         index.save();
-        String hash = makeCommit("Merged " + branchName + " into " + repo.head() + ".", branchHash);
-        repo.updateBranch(repo.head(), hash);
+        String hash = makeCommit("Merged " + branchName + " into " + REPO.head() + ".", branchHash);
+        REPO.updateBranch(REPO.head(), hash);
         if (hasConflict) {
             System.out.println("Encountered a merge conflict.");
         }
     }
 
     public static void addRemote(String[] args) {
-        // TODO: change the way to manipulate config later
+        // TODO: change the way to manipulate config later, repo does not need to know the config
         String name = args[1];
         String path = args[2];
         Config config = Config.fromFile();
         if (config.isRemote(name)) {
             abort("A remote with that name already exists.");
         }
+        // TODO: method should not rely on the existence of remoteName folder
+        REPO.initRemote(name);
         config.addRemote(name, Paths.get(path).toFile());
     }
 
@@ -238,14 +241,53 @@ public class Repo {
         String name = args[1];
         String branchName = args[2];
         Config config = Config.fromFile();
-        if (!config.isRemote(name)) {
-            abort("A remote with that name does not exist.");
-        }
+        // Assume config has recorded the remote repo
         File path = config.getPath(name);
+        // TODO: may be a bug
         if (!path.exists()) {
             abort("Remote directory not found.");
         }
-//        repo.fetchRemote(path, branchName);
+        FileSystem remoteRepo = new FileSystem(path.getParentFile());
+        if (!remoteRepo.isBranch(branchName)) {
+            abort("That remote does not have that branch.");
+        }
+        String hash = remoteRepo.getBranch(branchName);
+        REPO.updateRemoteBranch(name, branchName, hash);
+        saveRemoteCommits(remoteRepo, hash);
+    }
+
+    /**
+     * Retrieve non-common commits and blobs from a remote repo branch and save to local repo
+     */
+    private static void saveRemoteCommits(FileSystem remoteRepo, String hash) {
+        Queue<String> queue = new ArrayDeque<>();
+        Set<String> marked = new HashSet<>();
+        queue.add(hash);
+        while (!queue.isEmpty()) {
+            hash = queue.poll();
+            marked.add(hash);
+            Commit commit = Commit.fromFile(hash, remoteRepo);
+            // If it is tracked, its parents must have been tracked
+            if (REPO.isCommit(hash)) {
+                continue;
+            }
+            saveRemoteCommit(remoteRepo, commit);
+            for (String parentHash : commit.getParents()) {
+                if (!marked.contains(parentHash)) {
+                    queue.add(parentHash);
+                }
+            }
+        }
+    }
+
+    private static void saveRemoteCommit(FileSystem remoteRepo, Commit commit) {
+        byte[] content = Utils.serialize(commit);
+        REPO.saveCommit(commit.getHash(), content);
+        for (String blobHash : commit.getBlobs().values()) {
+            if (!REPO.isBlob(blobHash)) {
+                REPO.saveBlob(blobHash, remoteRepo.getBlob(blobHash));
+            }
+        }
     }
 
     /**
@@ -258,7 +300,7 @@ public class Repo {
             content += """
                 <<<<<<< HEAD
                 %s\
-                """.formatted(repo.getBlob(curr.fileHash(fileName)));
+                """.formatted((Object) REPO.getBlob(curr.getBlobHash(fileName)));
         } else {
             content += """
                 <<<<<<< HEAD
@@ -269,7 +311,7 @@ public class Repo {
                 =======
                 %s\
                 >>>>>>>
-                """.formatted(repo.getBlob(other.fileHash(fileName)));
+                """.formatted((Object) REPO.getBlob(other.getBlobHash(fileName)));
         } else {
             content += """
                 =======
@@ -284,7 +326,7 @@ public class Repo {
      * Check whether file contents in two commits are the same or untracked.
      */
     private static boolean sameBlob(Commit one, Commit other, String fileName) {
-        return one.fileHash(fileName).equals(other.fileHash(fileName));
+        return one.getBlobHash(fileName).equals(other.getBlobHash(fileName));
     }
 
     /**
@@ -302,15 +344,15 @@ public class Repo {
      * Find all the ancestors(include itself) for a commit
      * Return the tree set of its ancestors
      */
-    private static TreeSet<Commit> findAncestors(Commit target) {
+    private static TreeSet<Commit> findAncestors(Commit commit) {
         // Smallest item in the set has the newest date
         TreeSet<Commit> ancestors = new TreeSet<>(
                 Comparator.comparing(Commit::getDate, Comparator.reverseOrder())
         );
         Queue<Commit> queue = new ArrayDeque<>();
-        queue.add(target);
+        queue.add(commit);
         while (!queue.isEmpty()) {
-            Commit commit = queue.poll();
+            commit = queue.poll();
             ancestors.add(commit);
             for (String parentHash : commit.getParents()) {
                 Commit parent = Commit.fromFile(parentHash);
@@ -326,15 +368,15 @@ public class Repo {
      * Replace files in CWD with files tracked by a commit
      */
     private static void replaceCWD(String commitHash) {
-        Commit curr = Commit.fromFile(repo.headHash());
+        Commit curr = Commit.fromFile(REPO.headHash());
         Commit checkout = Commit.fromFile(commitHash);
         untrackedAbort(curr, checkout);
         // Only delete tracked files, not all workdir files(some files not tracked by both commits)
-        for (String fileName : curr.trackedFiles()) {
-            repo.rmCWD(fileName);
+        for (String fileName : curr.getFiles()) {
+            rmCWD(fileName);
         }
-        for (String fileName : checkout.trackedFiles()) {
-            repo.writeCWD(fileName, checkout.fileHash(fileName));
+        for (String fileName : checkout.getFiles()) {
+            writeCWD(fileName, REPO.getBlob(checkout.getBlobHash(fileName)));
         }
     }
 
@@ -342,7 +384,7 @@ public class Repo {
      * Helper method to check untracked files when merging or checkout
      */
     private static void untrackedAbort(Commit curr, Commit other) {
-        List<String> workFiles = repo.getRoot();
+        List<String> workFiles = getCWD();
         for (String fileName : workFiles) {
             if (!curr.isTracked(fileName) && other.isTracked(fileName)) {
                 abort("There is an untracked file in the way; delete it, or add and commit it first.");
@@ -354,9 +396,9 @@ public class Repo {
      * Print view of branches, mark current branch with *
      */
     private static void printBranches() {
-        List<String> branches = repo.getBranches();
+        List<String> branches = REPO.getBranches();
         branches.sort(null);
-        String head = repo.head();
+        String head = REPO.head();
         System.out.println("=== Branches ===");
         for (String b : branches) {
             if (b.equals(head)) {
@@ -392,8 +434,7 @@ public class Repo {
      * Return the newly made commit hash
      */
     private static String initialCommit() {
-        Commit commit = new Commit("initial commit");
-        commit.save();
+        Commit commit = new Commit("initial commit", Date.from(Instant.EPOCH));
         return commit.getHash();
     }
 
@@ -406,7 +447,7 @@ public class Repo {
         if (message.isEmpty()) {
             abort("Please enter a commit message.");
         }
-        Commit parent = Commit.fromFile(repo.headHash());
+        Commit parent = Commit.fromFile(REPO.headHash());
         // Cp content, not reference, this can not be detected by test
         // because the change to parent's blobs will not be saved to file
         Map<String, String> blobs = new HashMap<>(parent.getBlobs());
@@ -418,11 +459,10 @@ public class Repo {
         index.save();
         Commit commit;
         if (!mergedIn.isEmpty()) {
-            commit = new Commit(message, repo.headHash(), mergedIn, blobs);
+            commit = new Commit(message, REPO.headHash(), mergedIn, blobs, Date.from(Instant.now()));
         } else {
-            commit = new Commit(message, repo.headHash(), blobs);
+            commit = new Commit(message, REPO.headHash(), blobs, Date.from(Instant.now()));
         }
-        commit.save();
         return commit.getHash();
     }
 
@@ -434,7 +474,7 @@ public class Repo {
         File fp = Utils.join(CWD, fileName);
         byte[] content = Utils.readContents(fp);
         String fileHash = sha1((Object) content);
-        String blobHash = commit.fileHash(fileName);
+        String blobHash = commit.getBlobHash(fileName);
         return fileHash.equals(blobHash);
     }
 
@@ -460,22 +500,55 @@ public class Repo {
 
     private static void checkoutFile(String commitHash, String fileName) {
         Commit commit = Commit.fromFile(commitHash);
-        String blobHash = commit.fileHash(fileName);
+        String blobHash = commit.getBlobHash(fileName);
         if (!commit.isTracked(fileName)) {
             abort("File does not exist in that commit.");
         }
-        repo.writeCWD(fileName, blobHash);
+        writeCWD(fileName, REPO.getBlob(blobHash));
     }
 
     private static void checkoutBranch(String branchName) {
-        if (!repo.isBranch(branchName)) {
+        if (!REPO.isBranch(branchName)) {
             abort("No such branch exists.");
-        } else if (branchName.equals(repo.head())) {
+        } else if (branchName.equals(REPO.head())) {
             abort("No need to checkout the current branch.");
         } else {
-            replaceCWD(repo.getBranch(branchName));
-            repo.setHead(branchName);
+            replaceCWD(REPO.getBranch(branchName));
+            REPO.setHead(branchName);
             Index.resetIndex();
         }
+    }
+
+    /**
+     * Check whether the file is in the CWD
+     */
+    private static boolean inCWD(String fileName) {
+        File fp = Utils.join(CWD, fileName);
+        return fp.exists();
+    }
+
+    /**
+     * remove file from the CWD
+     */
+    private static void rmCWD(String fileName) {
+        File fp = Utils.join(CWD, fileName);
+        Utils.restrictedDelete(fp);
+    }
+
+    /**
+     * create or overwrite file in the CWD
+     */
+    private static void writeCWD(String fileName, byte[] content) {
+        File fp = Utils.join(CWD, fileName);
+        Utils.writeContents(fp, (Object) content);
+    }
+
+    /**
+     * get files in the CWD
+     */
+    private static List<String> getCWD() {
+        List<String> files = Utils.plainFilenamesIn(CWD);
+        assert files != null;
+        return files;
     }
 }
