@@ -288,8 +288,15 @@ public class FileSystem {
     public void rmRemote(String remoteName) {
         File fp = Utils.join(remotes, remoteName);
         if (fp.exists()) {
+            // Can not recursively delete a folder
+            for (String f : listFiles(fp)) {
+                File subFile = Utils.join(fp, f);
+                if (!subFile.delete()) {
+                    abort("Fail to remove the remote repo.");
+                }
+            }
             if (!fp.delete()) {
-                abort("Fail to remove the remote directory");
+                abort("Fail to remove the remote repo.");
             }
         }
     }
