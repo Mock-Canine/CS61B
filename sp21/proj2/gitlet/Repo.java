@@ -141,10 +141,69 @@ public class Repo {
     }
 
     public static void merge(String branchName) {
+        mergeHelper(branchName, "", REPO);
+    }
+
+    public static void addRemote(String name, String path) {
+        if (REPO.isRemote(name)) {
+            abort("A remote with that name already exists.");
+        }
+        REPO.addRemote(name, path);
+    }
+
+    public static void rmRemote(String name) {
+        if (!REPO.isRemote(name)) {
+            abort("A remote with that name does not exist.");
+        }
+        REPO.rmRemote(name);
+    }
+
+    public static void push(String name, String branchName) {
+        String headHash = REPO.headHash();
+        FileSystem remoteRepo = mkRemoteRepo(name);
+        if (remoteRepo.isBranch(branchName)) {
+            String branchHash = remoteRepo.getBranch(branchName);
+            Commit remoteBranch = Commit.fromFile(branchHash, remoteRepo);
+            // Less efficient implementation
+            Set<Commit> ancestors = findAncestors(REPO, Commit.fromFile(headHash));
+            if (!ancestors.contains(remoteBranch)) {
+                abort("Please pull down remote changes before pushing.");
+            }
+        }
+        saveRemoteCommits(remoteRepo, REPO, headHash);
+        remoteRepo.updateBranch(branchName, headHash);
+    }
+
+    /**
+     * Note that after fetch, remote commits will be saved to the same place as
+     * local commits, all methods applied to local commits will work for them
+     */
+    public static void fetch(String name, String branchName) {
+        FileSystem remoteRepo = mkRemoteRepo(name);
+        if (!remoteRepo.isBranch(branchName)) {
+            abort("That remote does not have that branch.");
+        }
+        String hash = remoteRepo.getBranch(branchName);
+        REPO.updateRemoteBranch(name, branchName, hash);
+        saveRemoteCommits(REPO, remoteRepo, hash);
+    }
+
+    public static void pull(String name, String branchName) {
+        fetch(name, branchName);
+        FileSystem remoteRepo = mkRemoteRepo(name);
+        mergeHelper(branchName, name, remoteRepo);
+    }
+
+    /**
+     * Merge a branch of a repo(local or tracked remote) to the local repo
+     * Helper method only for merge and pull command
+     * Provide remoteName if repo is a remote repo, empty string otherwise
+     */
+    private static void mergeHelper(String branchName, String remoteName, FileSystem repo) {
         /* Handle exceptions */
-        if (!REPO.isBranch(branchName)) {
+        if (!repo.isBranch(branchName)) {
             abort("A branch with that name does not exist.");
-        } else if (REPO.head().equals(branchName)) {
+        } else if (REPO == repo && REPO.head().equals(branchName)) {
             abort("Cannot merge a branch with itself.");
         }
         Index index = Index.fromFile();
@@ -154,16 +213,17 @@ public class Repo {
 
         /* Easy cases */
         Commit curr = Commit.fromFile(REPO.headHash());
-        String branchHash = REPO.getBranch(branchName);
-        Commit mergedIn = Commit.fromFile(branchHash);
+        String branchHash = repo.getBranch(branchName);
+        Commit mergedIn = Commit.fromFile(branchHash, repo);
+        // Pull will fetch first, so this can work well
         Commit ancestor = latestAncestor(curr, mergedIn);
-        untrackedAbort(curr, mergedIn);
         if (ancestor.equals(mergedIn)) {
             abort("Given branch is an ancestor of the current branch.");
         } else if (ancestor.equals(curr)) {
             reset(branchHash);
             abort("Current branch fast-forwarded.");
         }
+        untrackedAbort(curr, mergedIn);
 
         /* Complex case, compare fileHash between the three */
         Set<String> fileNames = new HashSet<>();
@@ -194,7 +254,7 @@ public class Repo {
                     rmCWD(f);
                     index.stageForRemoval(f);
                 }
-            /* Both change the work */
+                /* Both change the work */
             } else {
                 /* Same way change -> nothing to do */
                 /* Different way change */
@@ -209,62 +269,12 @@ public class Repo {
         // Necessary, because manipulating staging area + make commit will happen in one command,
         // but makeCommit() will retrieve index from file
         index.save();
-        String hash = makeCommit("Merged " + branchName + " into " + REPO.head() + ".", branchHash);
+        String branchMsg = REPO == repo ? branchName : remoteName + "/" + branchName;
+        String hash = makeCommit("Merged " + branchMsg + " into " + REPO.head() + ".", branchHash);
         REPO.updateBranch(REPO.head(), hash);
         if (hasConflict) {
             System.out.println("Encountered a merge conflict.");
         }
-    }
-
-    public static void addRemote(String[] args) {
-        String name = args[1];
-        String path = args[2];
-        if (REPO.isRemote(name)) {
-            abort("A remote with that name already exists.");
-        }
-        REPO.addRemote(name, path);
-    }
-
-    public static void rmRemote(String name) {
-        if (!REPO.isRemote(name)) {
-            abort("A remote with that name does not exist.");
-        }
-        REPO.rmRemote(name);
-    }
-
-    public static void push(String[] args) {
-        String name = args[1];
-        String branchName = args[2];
-        String headHash = REPO.headHash();
-        FileSystem remoteRepo = mkRemoteRepo(name);
-        if (remoteRepo.isBranch(branchName)) {
-            String branchHash = remoteRepo.getBranch(branchName);
-            Commit remoteBranch = Commit.fromFile(branchHash, remoteRepo);
-            // Less efficient implementation
-            Set<Commit> ancestors = findAncestors(REPO, Commit.fromFile(headHash));
-            if (!ancestors.contains(remoteBranch)) {
-                abort("Please pull down remote changes before pushing.");
-            }
-        }
-        saveRemoteCommits(remoteRepo, REPO, headHash);
-        remoteRepo.updateBranch(branchName, headHash);
-    }
-
-    public static void fetch(String[] args) {
-        String name = args[1];
-        String branchName = args[2];
-        FileSystem remoteRepo = mkRemoteRepo(name);
-        if (!remoteRepo.isBranch(branchName)) {
-            abort("That remote does not have that branch.");
-        }
-        String hash = remoteRepo.getBranch(branchName);
-        REPO.updateRemoteBranch(name, branchName, hash);
-        saveRemoteCommits(REPO, remoteRepo, hash);
-    }
-
-    public static void pull(String[] args) {
-        fetch(args);
-
     }
 
     /**
@@ -349,6 +359,7 @@ public class Repo {
 
     /**
      * Find the latest ancestor for two commits in the local commit DAG
+     * Note that after fetch operation, remote branch commits will be recorded in the commit DAG
      */
     private static Commit latestAncestor(Commit one, Commit other) {
         TreeSet<Commit> ancestorsOfOne = findAncestors(REPO, one);

@@ -72,7 +72,7 @@ public class Main {
                 break;
             case "add-remote":
                 validateNumArgs(args, 3);
-                Repo.addRemote(args);
+                Repo.addRemote(args[1], args[2]);
                 break;
             case "rm-remote":
                 validateNumArgs(args, 2);
@@ -80,15 +80,15 @@ public class Main {
                 break;
             case "push":
                 validateNumArgs(args, 3);
-                Repo.push(args);
+                Repo.push(args[1], args[2]);
                 break;
             case "fetch":
                 validateNumArgs(args, 3);
-                Repo.fetch(args);
+                Repo.fetch(args[1], args[2]);
                 break;
             case "pull":
                 validateNumArgs(args, 3);
-                Repo.pull(args);
+                Repo.pull(args[1], args[2]);
                 break;
             default:
                 abort("No command with that name exists.");

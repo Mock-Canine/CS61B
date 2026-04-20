@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.*;
 
 import static gitlet.Main.abort;
-// TODO: check whether the abort is proper
 /** Represents gitlet repository filesystem and provide IO operations
  * .gitlet/ filesystem
  * .gitlet/ -- gitlet repository
@@ -88,7 +87,6 @@ public class FileSystem {
      * With valid format, it should also indicate a unique commit without ambiguity
      * Abort the program if provide invalid hash
      */
-    // TODO: may be should not throw abort here
     public File commitPath(String hash) {
         if (!hash.matches("^[0-9a-f]{4,40}$")) {
             abort("No commit with that id exists.");
