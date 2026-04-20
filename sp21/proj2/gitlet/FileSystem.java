@@ -290,15 +290,6 @@ public class FileSystem {
         Utils.writeContents(fp, hash);
     }
 
-    // TODO: use a file under remoteName/ to store url not the whole class
-        // TODO: and Repo will only has the interface of REPO, not commit and index
-        // TODO: make the save and fromFile() method in commit and index class transfer to this class,
-        // need a Filesystem instance to do this operation
-        // TODO: use a saveState() after the switch in main class, avoid manually saving index every time
-        // TODO: pay attention to the merge(), which first save index and then commit,
-        // TODO: the makeCommit() method should first check the index map of this class, then decide to call index.fromFIle() or not
-        // TODO: may let the commit and index class only expose to the filesystem, so no need to change the actual code of these two
-
     /**
      * Return the file names inside a folder in the gitlet repo
      */

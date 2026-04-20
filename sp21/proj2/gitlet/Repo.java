@@ -232,53 +232,76 @@ public class Repo {
         REPO.rmRemote(name);
     }
 
+    public static void push(String[] args) {
+        String name = args[1];
+        String branchName = args[2];
+        String headHash = REPO.headHash();
+        FileSystem remoteRepo = mkRemoteRepo(name);
+        if (remoteRepo.isBranch(branchName)) {
+            String branchHash = remoteRepo.getBranch(branchName);
+            Commit remoteBranch = Commit.fromFile(branchHash, remoteRepo);
+            // Less efficient implementation
+            Set<Commit> ancestors = findAncestors(REPO, Commit.fromFile(headHash));
+            if (!ancestors.contains(remoteBranch)) {
+                abort("Please pull down remote changes before pushing.");
+            }
+        }
+        saveRemoteCommits(remoteRepo, REPO, headHash);
+        remoteRepo.updateBranch(branchName, headHash);
+    }
+
     public static void fetch(String[] args) {
         String name = args[1];
         String branchName = args[2];
-        File fp = Paths.get(REPO.getRemote(name)).toFile();
-        if (!REPO.isRemote(name) || !fp.exists()) {
-            abort("Remote directory not found.");
-        }
-        // Trim the .gitlet/
-        FileSystem remoteRepo = new FileSystem(fp.getParentFile());
+        FileSystem remoteRepo = mkRemoteRepo(name);
         if (!remoteRepo.isBranch(branchName)) {
             abort("That remote does not have that branch.");
         }
         String hash = remoteRepo.getBranch(branchName);
         REPO.updateRemoteBranch(name, branchName, hash);
-        saveRemoteCommits(remoteRepo, hash);
+        saveRemoteCommits(REPO, remoteRepo, hash);
+    }
+
+    public static void pull(String[] args) {
+        fetch(args);
+
     }
 
     /**
-     * Retrieve non-common commits and blobs from a remote repo branch and save to local repo
+     * Create the remote repo object,
      */
-    private static void saveRemoteCommits(FileSystem remoteRepo, String hash) {
-        Queue<String> queue = new ArrayDeque<>();
-        Set<String> marked = new HashSet<>();
-        queue.add(hash);
-        while (!queue.isEmpty()) {
-            hash = queue.poll();
-            marked.add(hash);
-            Commit commit = Commit.fromFile(hash, remoteRepo);
-            // If it is tracked, its parents must have been tracked
-            if (REPO.isCommit(hash)) {
-                continue;
-            }
-            saveRemoteCommit(remoteRepo, commit);
-            for (String parentHash : commit.getParents()) {
-                if (!marked.contains(parentHash)) {
-                    queue.add(parentHash);
-                }
+    private static FileSystem mkRemoteRepo(String remoteName) {
+        File fp = Paths.get(REPO.getRemote(remoteName)).toFile();
+        if (!REPO.isRemote(remoteName) || !fp.exists()) {
+            abort("Remote directory not found.");
+        }
+        // Trim the .gitlet/
+        return new FileSystem(fp.getParentFile());
+    }
+
+    /**
+     * Copy commits and their tracked blobs from a repo and save to another repo
+     * Only copy the non-common commits for the two repos from the ancestors(including itself) of the input commit
+     */
+    private static void saveRemoteCommits(FileSystem one, FileSystem another, String hash) {
+        // Less efficient, but less code, in fact no need to traverse whole tree
+        Commit commit = Commit.fromFile(hash, another);
+        for (Commit ancestor : findAncestors(another, commit)) {
+            if (!one.isCommit(ancestor.getHash())) {
+                cpCommit(one, another, ancestor);
             }
         }
     }
 
-    private static void saveRemoteCommit(FileSystem remoteRepo, Commit commit) {
+    /**
+     * Copy a commit and its tracked blobs from one repo to another repo
+     */
+    private static void cpCommit(FileSystem one, FileSystem another, Commit commit) {
         byte[] content = Utils.serialize(commit);
-        REPO.saveCommit(commit.getHash(), content);
+        one.saveCommit(commit.getHash(), content);
         for (String blobHash : commit.getBlobs().values()) {
-            if (!REPO.isBlob(blobHash)) {
-                REPO.saveBlob(blobHash, remoteRepo.getBlob(blobHash));
+            if (!one.isBlob(blobHash)) {
+                one.saveBlob(blobHash, another.getBlob(blobHash));
             }
         }
     }
@@ -325,21 +348,21 @@ public class Repo {
     }
 
     /**
-     * Find the latest ancestor for two commits in a commit DAG
+     * Find the latest ancestor for two commits in the local commit DAG
      */
     private static Commit latestAncestor(Commit one, Commit other) {
-        TreeSet<Commit> ancestorsOfOne = findAncestors(one);
-        TreeSet<Commit> ancestorsOfOther = findAncestors(other);
+        TreeSet<Commit> ancestorsOfOne = findAncestors(REPO, one);
+        TreeSet<Commit> ancestorsOfOther = findAncestors(REPO, other);
         TreeSet<Commit> commonAncestors = new TreeSet<>(ancestorsOfOne);
         commonAncestors.retainAll(ancestorsOfOther);
         return commonAncestors.first();
     }
 
     /**
-     * Find all the ancestors(include itself) for a commit
+     * Find all the ancestors(include itself) for a commit in a gitlet repo
      * Return the tree set of its ancestors
      */
-    private static TreeSet<Commit> findAncestors(Commit commit) {
+    private static TreeSet<Commit> findAncestors(FileSystem repo, Commit commit) {
         // Smallest item in the set has the newest date
         TreeSet<Commit> ancestors = new TreeSet<>(
                 Comparator.comparing(Commit::getDate, Comparator.reverseOrder())
@@ -350,7 +373,7 @@ public class Repo {
             commit = queue.poll();
             ancestors.add(commit);
             for (String parentHash : commit.getParents()) {
-                Commit parent = Commit.fromFile(parentHash);
+                Commit parent = Commit.fromFile(parentHash, repo);
                 if (!ancestors.contains(parent)) {
                     queue.add(parent);
                 }

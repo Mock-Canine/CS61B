@@ -28,7 +28,7 @@ public class Commit implements Serializable {
 
     /* Methods for retrieve commit object from filesystem */
     /**
-     * Retrieve a commit object from file
+     * Retrieve a commit object from local repo
      * @param commitHash valid format: 4-40 characters long, each represent a
      *             lower case hex number, without any prefix like 0x, 0X, etc.
      * With valid format, it should also indicate a unique commit without ambiguity

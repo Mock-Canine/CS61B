@@ -78,9 +78,17 @@ public class Main {
                 validateNumArgs(args, 2);
                 Repo.rmRemote(args[1]);
                 break;
+            case "push":
+                validateNumArgs(args, 3);
+                Repo.push(args);
+                break;
             case "fetch":
                 validateNumArgs(args, 3);
                 Repo.fetch(args);
+                break;
+            case "pull":
+                validateNumArgs(args, 3);
+                Repo.pull(args);
                 break;
             default:
                 abort("No command with that name exists.");
