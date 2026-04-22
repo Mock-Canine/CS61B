@@ -22,10 +22,10 @@ public class Main {
     static void main() {
         NgordnetServer hns = new NgordnetServer();
 
-        NGramMap ngm = new NGramMap(WORD_HISTORY_SIZE3_FILE, YEAR_HISTORY_FILE);
+        NGramMap ngm = new NGramMap(WORD_HISTORY_SIZE1291_FILE, YEAR_HISTORY_FILE);
 
         hns.startUp();
-        hns.register("history", new HistoryTextHandler(ngm));
+        hns.register("history", new HistoryHandler(ngm));
         hns.register("historytext", new HistoryTextHandler(ngm));
 
         System.out.println("Finished server startup! Visit http://localhost:4567/ngordnet_4a.html");

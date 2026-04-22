@@ -12,7 +12,7 @@ public class PlotDemo {
     public static final int YEAR_1900 = 1900;
     public static final int YEAR_1950 = 1950;
 
-    public static void main(String[] args) {
+    static void main() {
 
         NGramMap ngm = new NGramMap(WORD_HISTORY_SIZE14377_FILE, YEAR_HISTORY_FILE);
         ArrayList<String> words = new ArrayList<>();
