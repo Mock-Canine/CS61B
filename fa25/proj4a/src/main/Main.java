@@ -19,7 +19,7 @@ public class Main {
     }
     /* Do not delete or modify the code above! */
 
-    public static void main(String[] args) {
+    static void main() {
         NgordnetServer hns = new NgordnetServer();
 
         /* The following code might be useful to you.

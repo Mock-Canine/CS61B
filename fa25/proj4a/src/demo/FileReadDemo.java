@@ -5,7 +5,7 @@ import edu.princeton.cs.algs4.In;
 import static main.Main.*;
 
 public class FileReadDemo {
-    public static void main(String[] args) {
+    static void main() {
         In in = new In(WORD_HISTORY_SIZE3_FILE);
         int i = 0;
 
