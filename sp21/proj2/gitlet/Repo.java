@@ -375,8 +375,10 @@ public class Repo {
      */
     private static TreeSet<Commit> findAncestors(FileSystem repo, Commit commit) {
         // Smallest item in the set has the newest date
+        // Keep comparator consistent to equals()
         TreeSet<Commit> ancestors = new TreeSet<>(
                 Comparator.comparing(Commit::getDate, Comparator.reverseOrder())
+                        .thenComparing(Commit::getHash)
         );
         Queue<Commit> queue = new ArrayDeque<>();
         queue.add(commit);
