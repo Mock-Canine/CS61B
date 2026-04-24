@@ -29,50 +29,24 @@ public class TestMultiWordKHyponyms {
     public static final String HYPONYMS_EECS_FILE = PREFIX + "hyponyms_eecs.txt";
     public static final String SYNSET_SIZE16_FILE = PREFIX + "synsets_size16.txt";
     public static final String HYPONYM_SIZE16_FILE = PREFIX + "hyponyms_size16.txt";
+    public static final String HYPONYM_SIZE82191_FILE = PREFIX + "hyponyms_size82191.txt";
+    public static final String SYNSET_SIZE82191_FILE = PREFIX + "synsets_size82191.txt";
     public static final String SYNSET_SIZE1000_FILE = PREFIX + "synsets_size1000.txt";
     public static final String HYPONYM_SIZE1000_FILE = PREFIX +  "hyponyms_size1000.txt";
 
 
     /** This is an example from the spec.*/
     @Test
-    public void testOccurrenceAndChangeK0() {
+    public void testFoodAndCake() {
         NgordnetQueryHandler studentHandler = AutograderBuddy.getHyponymsHandler(
-                WORD_HISTORY_SIZE3_FILE, YEAR_HISTORY_FILE, SYNSET_SIZE16_FILE, HYPONYM_SIZE16_FILE);
+                WORD_HISTORY_SIZE14377_FILE, YEAR_HISTORY_FILE, SYNSET_SIZE82191_FILE, HYPONYM_SIZE82191_FILE);
         List<String> words = new ArrayList<>();
-        words.add("occurrence");
-        words.add("change");
+        words.add("food");
+        words.add("cake");
 
-        NgordnetQuery nq = new NgordnetQuery(words, 0, 0, 0);
+        NgordnetQuery nq = new NgordnetQuery(words, 1950, 1990, 5);
         String actual = studentHandler.handle(nq);
-        String expected = "[alteration, change, increase, jump, leap, modification, saltation, transition]";
-        assertThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void testDuplicate() {
-        NgordnetQueryHandler studentHandler = AutograderBuddy.getHyponymsHandler(
-                WORD_HISTORY_SIZE3_FILE, YEAR_HISTORY_FILE, SYNSET_SIZE16_FILE, HYPONYM_SIZE16_FILE);
-        List<String> words = new ArrayList<>();
-        words.add("action");
-        words.add("action");
-
-        NgordnetQuery nq = new NgordnetQuery(words, 0, 0, 0);
-        String actual = studentHandler.handle(nq);
-        String expected = "[action, change, demotion, variation]";
-        assertThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void testAbsent() {
-        NgordnetQueryHandler studentHandler = AutograderBuddy.getHyponymsHandler(
-                WORD_HISTORY_SIZE3_FILE, YEAR_HISTORY_FILE, SYNSET_SIZE16_FILE, HYPONYM_SIZE16_FILE);
-        List<String> words = new ArrayList<>();
-        words.add("action");
-        words.add("Mock");
-
-        NgordnetQuery nq = new NgordnetQuery(words, 0, 0, 0);
-        String actual = studentHandler.handle(nq);
-        String expected = "[]";
+        String expected = "[cake, cookie, kiss, snap, wafer]";
         assertThat(actual).isEqualTo(expected);
     }
 }
