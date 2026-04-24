@@ -22,19 +22,22 @@ public class HyponymsHandler extends NgordnetQueryHandler {
         int endYear = q.endYear();
         int k = q.k();
         Set<String> common = commonWords(words);
+        List<String> result;
         if (k == 0) {
-            List<String> result = new ArrayList<>(common);
-            result.sort(null);
-            return result.toString();
+            result = new ArrayList<>(common);
         } else {
-            List<String> selectK = new ArrayList<>();
+            result = new ArrayList<>();
             Map<String, Double> wordTotalCounts = rmZeroCount(common, startYear, endYear);
             Iterator<String> iter = sort(common, wordTotalCounts);
             for (int i = 0; i < k && iter.hasNext(); i++) {
-                selectK.add(iter.next());
+                result.add(iter.next());
             }
-            return selectK.toString();
         }
+        // Sort is also needed here, sort() use natural order to break tie,
+        // two strings with the same counts, smaller string will enter result list,
+        // But the results should also output in order, not based on counts
+        result.sort(null);
+        return result.toString();
     }
 
     /**

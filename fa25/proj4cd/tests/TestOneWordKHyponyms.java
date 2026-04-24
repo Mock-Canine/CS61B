@@ -31,7 +31,7 @@ public class TestOneWordKHyponyms {
 
         NgordnetQuery nq = new NgordnetQuery(words, 2010, 2020, 4);
         String actual = studentHandler.handle(nq);
-        String expected = "[CS61B, CS61A, CS170, CS61C]";
+        String expected = "[CS170, CS61A, CS61B, CS61C]";
         assertThat(actual).isEqualTo(expected);
     }
 
