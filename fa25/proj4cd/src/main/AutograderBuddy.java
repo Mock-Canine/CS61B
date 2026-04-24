@@ -9,6 +9,7 @@ public class AutograderBuddy {
             String wordHistoryFile, String yearHistoryFile,
             String synsetFile, String hyponymFile) {
 
-        throw new RuntimeException("Please fill out AutograderBuddy.java!");
+        WorldNet wn = new WorldNet(synsetFile, hyponymFile);
+        return new HyponymsHandler(wn);
     }
 }

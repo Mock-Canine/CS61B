@@ -1,7 +1,13 @@
 package main;
 
 import browser.NgordnetServer;
+import com.google.common.graph.Graph;
+import org.eclipse.jetty.util.TreeTrie;
+import org.eclipse.jetty.util.Trie;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
     private static final String PREFIX = "./data/";
@@ -28,13 +34,12 @@ public class Main {
     static {
         LoggerFactory.getLogger(Main.class).info("\033[1;38mChanging text color to white");
     }
-    public static void main(String[] args) {
+    static void main() {
         NgordnetServer hns = new NgordnetServer();
 
         hns.startUp();
-        // TODO: modify HyponymsHandler
-        // hns.register("hyponyms", new HyponymsHandler());
-
+        WorldNet wn = new WorldNet(SYNSETS_SIZE16_FILE, HYPONYMS_SIZE16_FILE);
+        hns.register("hyponyms", new HyponymsHandler(wn));
         System.out.println("Finished server startup! Visit http://localhost:4567/ngordnet.html");
     }
 }

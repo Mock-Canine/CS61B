@@ -45,5 +45,17 @@ public class TestOneWordK0Hyponyms {
         assertThat(actual).isEqualTo(expected);
     }
 
-    // TODO: Add more unit tests (including edge case tests) here.
+
+    @Test
+    public void testNotInclude() {
+        NgordnetQueryHandler studentHandler = AutograderBuddy.getHyponymsHandler(
+                WORD_HISTORY_SIZE3_FILE, YEAR_HISTORY_FILE, SYNSET_SIZE16_FILE, HYPONYM_SIZE16_FILE);
+        List<String> words = new ArrayList<>();
+        words.add("pollute");
+
+        NgordnetQuery nq = new NgordnetQuery(words, 5, 8, 0);
+        String actual = studentHandler.handle(nq);
+        String expected = "[]";
+        assertThat(actual).isEqualTo(expected);
+    }
 }
