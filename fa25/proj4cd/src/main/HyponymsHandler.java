@@ -7,15 +7,21 @@ import java.util.*;
 
 public class HyponymsHandler extends NgordnetQueryHandler {
     private final WorldNet wn;
+    private final NGramMap ngm;
 
-    public HyponymsHandler(WorldNet wn) {
+    public HyponymsHandler(WorldNet wn, NGramMap ngm) {
         this.wn = wn;
+        this.ngm = ngm;
     }
 
     // TODO: Consider the front input edge case
+    // TODO: Prompt AI for data structure choosing improvement
     @Override
     public String handle(NgordnetQuery q) {
         List<String> words = q.words();
+        int startYear = q.startYear();
+        int endYear = q.endYear();
+        int k = q.k();
         SortedSet<String> commonWords = new TreeSet<>();
         // Handle duplicate inputs
         for (String word : new HashSet<>(words)) {
@@ -27,4 +33,6 @@ public class HyponymsHandler extends NgordnetQueryHandler {
         }
         return commonWords.toString();
     }
+
+    private List<String> sortByCount(int k, Set<>)
 }

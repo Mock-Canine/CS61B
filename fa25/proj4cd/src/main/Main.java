@@ -39,7 +39,8 @@ public class Main {
 
         hns.startUp();
         WorldNet wn = new WorldNet(SYNSETS_SIZE16_FILE, HYPONYMS_SIZE16_FILE);
-        hns.register("hyponyms", new HyponymsHandler(wn));
+        NGramMap ngm = new NGramMap(WORD_HISTORY_SIZE1291_FILE, WORD_HISTORY_SIZE1291_FILE);
+        hns.register("hyponyms", new HyponymsHandler(wn, ngm));
         System.out.println("Finished server startup! Visit http://localhost:4567/ngordnet.html");
     }
 }
