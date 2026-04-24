@@ -45,6 +45,4 @@ public class NGramMap extends StaffNGramMap {
     public TreeMap<Integer, Double> countHistory(String word) {
         return countHistory(word, MIN_YEAR, MAX_YEAR);
     }
-
-    // TODO: Replace this file with your own implementation if you want all the methods of an NGramMap
 }
