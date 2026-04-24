@@ -40,8 +40,8 @@ public class WorldNet {
         }
     }
 
-    public SortedSet<String> getHyponyms(String word) {
-        TreeSet<String> hyponyms = new TreeSet<>();
+    public Set<String> getHyponyms(String word) {
+        Set<String> hyponyms = new HashSet<>();
         Set<String> marked = new HashSet<>();
         for (String synset : wordSynsets.getOrDefault(word, new ArrayList<>())) {
             Queue<String> queue = new ArrayDeque<>();

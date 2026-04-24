@@ -22,7 +22,7 @@ public class HyponymsHandler extends NgordnetQueryHandler {
         int startYear = q.startYear();
         int endYear = q.endYear();
         int k = q.k();
-        SortedSet<String> commonWords = new TreeSet<>();
+        Set<String> commonWords = new HashSet<>();
         // Handle duplicate inputs
         for (String word : new HashSet<>(words)) {
             if (commonWords.isEmpty()) {
@@ -31,8 +31,11 @@ public class HyponymsHandler extends NgordnetQueryHandler {
                 commonWords.retainAll(wn.getHyponyms(word));
             }
         }
-        return commonWords.toString();
+        List<String> result = new ArrayList<>(commonWords);
+        result.sort(null);
+        return result.toString();
     }
 
-    private List<String> sortByCount(int k, Set<>)
+    // TODO: may attention that break tie by the alphabet
+
 }

@@ -3,7 +3,9 @@ import main.WorldNet;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static main.Main.*;
 
@@ -32,21 +34,19 @@ public class TestGraph {
     public void testWorldNetBasic() {
         WorldNet wn = new WorldNet(SYNSETS_SIZE16_FILE, HYPONYMS_SIZE16_FILE);
         // Test case: query words not in the dataset
-        String nothingness = wn.getHyponyms("MockCanine").toString();
-        assertThat(nothingness).isEqualTo("[]");
+        Set<String> nothingness = wn.getHyponyms("MockCanine");
+        assertThat(nothingness).isEqualTo(new HashSet<String>());
 
-        // Test case: including itself, in order
-        String easy = wn.getHyponyms("action").toString();
-        List<String> easyResult = List.of("action", "change", "demotion", "variation");
-        assertThat(easy).isEqualTo(easyResult.toString());
+        // Test case: including itself, no order now
+        Set<String> easy = wn.getHyponyms("action");
+        Set<String> easyResult = Set.of("action", "change", "demotion", "variation");
+        assertThat(easy).isEqualTo(easyResult);
 
         // Test case: no repeated words, handle connections
-        String verbose = wn.getHyponyms("natural_event").toString();
-        // Repeated: alteration, modification
-        List<String> expected = new ArrayList<>(List.of("happening", "occurrence", "occurrent", "natural_event", "change",
+        Set<String> verbose = wn.getHyponyms("natural_event");
+        Set<String> expected = Set.of("happening", "occurrence", "occurrent", "natural_event", "change",
                 "alteration", "modification", "transition", "increase", "leap", "jump", "saltation", "adjustment",
-                "conversion", "mutation"));
-        expected.sort(null);
-        assertThat(verbose).isEqualTo(expected.toString());
+                "conversion", "mutation");
+        assertThat(verbose).isEqualTo(expected);
     }
 }
