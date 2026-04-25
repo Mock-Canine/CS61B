@@ -75,4 +75,18 @@ public class TestMultiWordK0Hyponyms {
         String expected = "[]";
         assertThat(actual).isEqualTo(expected);
     }
+
+    @Test
+    public void testNoCommon() {
+        NgordnetQueryHandler studentHandler = AutograderBuddy.getHyponymsHandler(
+                WORD_HISTORY_SIZE3_FILE, YEAR_HISTORY_FILE, SYNSET_SIZE16_FILE, HYPONYM_SIZE16_FILE);
+        List<String> words = new ArrayList<>();
+        words.add("action");
+        words.add("a");
+
+        NgordnetQuery nq = new NgordnetQuery(words, 0, 0, 0);
+        String actual = studentHandler.handle(nq);
+        String expected = "[]";
+        assertThat(actual).isEqualTo(expected);
+    }
 }

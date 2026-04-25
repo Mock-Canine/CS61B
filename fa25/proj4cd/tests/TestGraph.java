@@ -17,17 +17,17 @@ public class TestGraph {
     public void testGraph() {
         Graph graph = new Graph();
         // Test case: not add, query
-        List<String> edges1 = new ArrayList<>(graph.adj("1"));
+        List<Integer> edges1 = new ArrayList<>(graph.adj(1));
         assertThat(edges1).isEmpty();
         // add an edge, query
-        graph.addEdge("2", "1");
-        List<String> edges2 = new ArrayList<>(graph.adj("2"));
-        assertThat(edges2).isEqualTo(List.of("1"));
+        graph.addEdge(2, 1);
+        List<Integer> edges2 = new ArrayList<>(graph.adj(2));
+        assertThat(edges2).isEqualTo(List.of(1));
         assertThat(edges1).isEmpty();
         // add another edge
-        graph.addEdge("2", "5");
-        edges2 = new ArrayList<>(graph.adj("2"));
-        assertThat(edges2).isEqualTo(List.of("1", "5"));
+        graph.addEdge(2, 5);
+        edges2 = new ArrayList<>(graph.adj(2));
+        assertThat(edges2).isEqualTo(List.of(1, 5));
     }
 
     @Test

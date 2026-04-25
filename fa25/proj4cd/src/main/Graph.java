@@ -2,19 +2,19 @@ package main;
 
 import java.util.*;
 
-/** Use unique string as identifier for nodes */
+/** Use unique int as identifier for nodes */
 public class Graph {
-    private final Map<String, List<String>> graph;
+    private final Map<Integer, List<Integer>> graph;
 
     public Graph() {
         graph = new HashMap<>();
     }
 
-    public void addEdge(String from, String to) {
+    public void addEdge(Integer from, Integer to) {
         graph.computeIfAbsent(from, _ -> new ArrayList<>()).add(to);
     }
 
-    public Collection<String> adj(String from) {
-        return graph.getOrDefault(from, new ArrayList<>());
+    public Collection<Integer> adj(Integer from) {
+        return graph.getOrDefault(from, Collections.emptyList());
     }
 }

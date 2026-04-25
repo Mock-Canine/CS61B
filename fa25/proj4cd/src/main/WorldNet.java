@@ -7,9 +7,9 @@ import java.util.*;
 public class WorldNet {
     private final Graph graph;
     /** Map a word to its synsets */
-    private final Map<String, List<String>> wordSynsets;
+    private final Map<String, List<Integer>> wordSynsets;
     /** synset ID and its words */
-    private final Map<String, List<String>> synsets;
+    private final Map<Integer, List<String>> synsets;
 
     public WorldNet(String synsetFilename, String hyponymsFilename) {
         graph = new Graph();
@@ -22,7 +22,7 @@ public class WorldNet {
             String[] splitLine = nextLine.split(",");
             String from = splitLine[0];
             for (int i = 1; i < splitLine.length; i++) {
-                graph.addEdge(from, splitLine[i]);
+                graph.addEdge(Integer.parseInt(from), Integer.parseInt(splitLine[i]));
             }
         }
         // Populate mutual links between word and synset
@@ -30,7 +30,7 @@ public class WorldNet {
         while (!synsetFile.isEmpty()) {
             String nextLine = synsetFile.readLine();
             String[] splitLine = nextLine.split(",");
-            String synset = splitLine[0];
+            Integer synset = Integer.parseInt(splitLine[0]);
             String[] words = splitLine[1].split(" ");
             for (String word : words) {
                 wordSynsets.computeIfAbsent(word, _ -> new ArrayList<>()).add(synset);
@@ -42,9 +42,9 @@ public class WorldNet {
 
     public Set<String> getHyponyms(String word) {
         Set<String> hyponyms = new HashSet<>();
-        Set<String> marked = new HashSet<>();
-        for (String synset : wordSynsets.getOrDefault(word, new ArrayList<>())) {
-            Queue<String> queue = new ArrayDeque<>();
+        Set<Integer> marked = new HashSet<>();
+        for (Integer synset : wordSynsets.getOrDefault(word, new ArrayList<>())) {
+            Queue<Integer> queue = new ArrayDeque<>();
             queue.add(synset);
             while (!queue.isEmpty()) {
                 synset = queue.poll();
