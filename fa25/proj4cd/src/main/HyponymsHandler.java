@@ -12,14 +12,7 @@ public class HyponymsHandler extends NgordnetQueryHandler {
     /**
      * Helper class for sort
      */
-    private static class WordCount {
-        private final String word;
-        private final double count;
-        public WordCount(String word, double count) {
-            this.word = word;
-            this.count = count;
-        }
-    }
+    private record WordCount(String word, double count) {}
 
     public HyponymsHandler(WorldNet wn, NGramMap ngm) {
         this.wn = wn;
@@ -83,29 +76,33 @@ public class HyponymsHandler extends NgordnetQueryHandler {
      * Return empty set if no hyponyms have been found
      */
     private Set<String> commonWords(List<String> words) {
-        Set<String> commonWords = new HashSet<>();
-        boolean firstWord = true;
-        // Handle duplicate inputs
+        List<Set<String>> allSets = new ArrayList<>();
+
         for (String word : new HashSet<>(words)) {
             Set<String> hyponyms = wn.getHyponyms(word);
-            if (firstWord) {
-                commonWords = hyponyms;
-                firstWord = false;
-            } else {
-                commonWords.retainAll(hyponyms);
+            if (hyponyms.isEmpty()) {
+                return new HashSet<>();
             }
-            // commonWords is empty when firstWord or two words do not have intersection
-            if (commonWords.isEmpty()) {
-                break;
-            }
+            allSets.add(hyponyms);
         }
-        return commonWords;
+
+        if (allSets.isEmpty()) {
+            return new HashSet<>();
+        }
+
+        allSets.sort(Comparator.comparingInt(Set::size));
+
+        Set<String> common = new HashSet<>(allSets.getFirst());
+        for (int i = 1; i < allSets.size() && !common.isEmpty(); i++) {
+            common.retainAll(allSets.get(i));
+        }
+        return common;
     }
 
     /**
      * Return the # of total count of a word in the NGram
      */
-    private Double countSum(String word, int startYear, int endYear) {
+    private double countSum(String word, int startYear, int endYear) {
         TreeMap<Integer, Double> countHistory = ngm.countHistory(word, startYear, endYear);
         Double result = 0.0;
         for (Double v : countHistory.values()) {

@@ -10,11 +10,11 @@ public class Graph {
         graph = new HashMap<>();
     }
 
-    public void addEdge(Integer from, Integer to) {
+    public void addEdge(int from, int to) {
         graph.computeIfAbsent(from, _ -> new ArrayList<>()).add(to);
     }
 
-    public Collection<Integer> adj(Integer from) {
+    public Collection<Integer> adj(int from) {
         return graph.getOrDefault(from, Collections.emptyList());
     }
 }
