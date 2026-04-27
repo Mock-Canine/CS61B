@@ -220,7 +220,8 @@ public class Repo {
             abort("Given branch is an ancestor of the current branch.");
         } else if (ancestor.equals(curr)) {
             reset(branchHash);
-            abort("Current branch fast-forwarded.");
+            System.out.println("Current branch fast-forwarded.");
+            return;
         }
         untrackedAbort(curr, mergedIn);
 
@@ -422,7 +423,7 @@ public class Repo {
      * Helper method to check untracked files when merging or checkout
      */
     private static void untrackedAbort(Commit curr, Commit other) {
-        List<String> workFiles = getCWD();
+        List<String> workFiles = listCWDFiles();
         for (String fileName : workFiles) {
             if (!curr.isTracked(fileName) && other.isTracked(fileName)) {
                 abort("There is an untracked file in the way; delete it, or add and commit it first.");
@@ -473,6 +474,7 @@ public class Repo {
      */
     private static String initialCommit() {
         Commit commit = new Commit("initial commit", Date.from(Instant.EPOCH));
+        REPO.saveCommit(commit.getHash(), Utils.serialize(commit));
         return commit.getHash();
     }
 
@@ -486,8 +488,6 @@ public class Repo {
             abort("Please enter a commit message.");
         }
         Commit parent = Commit.fromFile(REPO.headHash());
-        // Cp content, not reference, this can not be detected by test
-        // because the change to parent's blobs will not be saved to file
         Map<String, String> blobs = new HashMap<>(parent.getBlobs());
         Index index = Index.fromFile();
         if (index.isEmpty()) {
@@ -501,6 +501,7 @@ public class Repo {
         } else {
             commit = new Commit(message, REPO.headHash(), blobs, Date.from(Instant.now()));
         }
+        REPO.saveCommit(commit.getHash(), Utils.serialize(commit));
         return commit.getHash();
     }
 
@@ -587,7 +588,7 @@ public class Repo {
     /**
      * get files in the CWD
      */
-    private static List<String> getCWD() {
+    private static List<String> listCWDFiles() {
         List<String> files = Utils.plainFilenamesIn(CWD);
         assert files != null;
         return files;

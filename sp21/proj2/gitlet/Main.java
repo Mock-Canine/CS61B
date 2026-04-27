@@ -16,7 +16,7 @@ public class Main {
         }
         String firstArg = args[0];
         if (!firstArg.equals("init")) {
-            REPO.isInRepo();
+            REPO.assertInRepo();
         }
         switch (firstArg) {
             case "init":

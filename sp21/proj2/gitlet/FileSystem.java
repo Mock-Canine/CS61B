@@ -73,7 +73,7 @@ public class FileSystem {
     /**
      * Check if in a gitlet repo
      */
-    public void isInRepo() {
+    public void assertInRepo() {
         if (!gitlet.exists()) {
             abort("Not in an initialized Gitlet directory.");
         }

@@ -94,13 +94,11 @@ public class Index implements Serializable {
      * Integrate files in staging areas into a commit, and clear staging areas
      * Return the integrated result blobs
      */
-    public Map<String, String> commit(Map<String, String> blobs) {
-        Map<String, String> newBlobs = new HashMap<>(blobs);
+    public void commit(Map<String, String> blobs) {
         blobs.putAll(addition);
         blobs.keySet().removeAll(removal);
         addition.clear();
         removal.clear();
-        return newBlobs;
     }
 
     @Override

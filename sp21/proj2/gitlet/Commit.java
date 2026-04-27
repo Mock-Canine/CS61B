@@ -5,7 +5,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.*;
 
-import static gitlet.Repo.REPO;
 
 /**
  * Represents a gitlet commit object.
@@ -20,7 +19,7 @@ public class Commit implements Serializable {
     private final String parent1Hash;
     private final String parent2Hash;
     /** The blobs tracked by the commit */
-    private final HashMap<String, String> blobs;
+    private final TreeMap<String, String> blobs;
     /** The timestamp of this commit. */
     private final Date date;
     /** The hash of the commit, will be set when retrieved from file or initialized */
@@ -35,7 +34,7 @@ public class Commit implements Serializable {
      * Abort the program if provide invalid hash
      */
     public static Commit fromFile(String commitHash) {
-        return fromFile(commitHash, REPO);
+        return fromFile(commitHash, Repo.REPO);
     }
 
     /**
@@ -83,11 +82,10 @@ public class Commit implements Serializable {
         message = msg;
         parent1Hash = parent1;
         parent2Hash = parent2;
-        this.blobs = new HashMap<>(blobs);
+        this.blobs = new TreeMap<>(blobs);
         this.date = date;
         byte[] serialized = Utils.serialize(this);
         hash = Utils.sha1((Object) serialized);
-        REPO.saveCommit(hash, serialized);
     }
 
     /* Observer methods */
@@ -127,7 +125,7 @@ public class Commit implements Serializable {
      * Return a map view of files tracked by the commit
      */
     public Map<String, String> getBlobs() {
-        return new HashMap<>(blobs);
+        return new TreeMap<>(blobs);
     }
 
     /**
