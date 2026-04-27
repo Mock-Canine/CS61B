@@ -9,7 +9,7 @@ public class WorldNet {
     /** Map a word to its synsets */
     private final Map<String, List<Integer>> wordSynsets;
     /** synset ID and its words */
-    private final List<List<String>> synsets;
+    private final List<String[]> synsets;
 
     public WorldNet(String synsetFilename, String hyponymsFilename) {
         graph = new Graph();
@@ -36,24 +36,21 @@ public class WorldNet {
                 wordSynsets.computeIfAbsent(word, _ -> new ArrayList<>()).add(synset);
             }
             // Assume synset File has no duplicate entry
-            synsets.add(synset, List.of(words));
+            synsets.add(synset, words);
         }
     }
 
     public Set<String> getHyponyms(String word) {
         Set<String> hyponyms = new HashSet<>();
         Set<Integer> marked = new HashSet<>();
-        for (Integer synset : wordSynsets.getOrDefault(word, Collections.emptyList())) {
-            Queue<Integer> queue = new ArrayDeque<>();
-            queue.add(synset);
-            while (!queue.isEmpty()) {
-                synset = queue.poll();
-                if (!marked.add(synset)) {
-                    continue;
-                }
-                hyponyms.addAll(synsets.get(synset));
-                queue.addAll(graph.adj(synset));
+        Queue<Integer> queue = new ArrayDeque<>(wordSynsets.getOrDefault(word, Collections.emptyList()));
+        while (!queue.isEmpty()) {
+            Integer synset = queue.poll();
+            if (!marked.add(synset)) {
+                continue;
             }
+            hyponyms.addAll(List.of(synsets.get(synset)));
+            queue.addAll(graph.adj(synset));
         }
         return hyponyms;
     }

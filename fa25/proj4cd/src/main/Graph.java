@@ -14,7 +14,7 @@ public class Graph {
         graph.computeIfAbsent(from, _ -> new ArrayList<>()).add(to);
     }
 
-    public Collection<Integer> adj(int from) {
+    public Collection<Integer> adj(Integer from) {
         return graph.getOrDefault(from, Collections.emptyList());
     }
 }
