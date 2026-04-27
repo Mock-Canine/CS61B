@@ -163,10 +163,9 @@ public class Repo {
         FileSystem remoteRepo = mkRemoteRepo(name);
         if (remoteRepo.isBranch(branchName)) {
             String branchHash = remoteRepo.getBranch(branchName);
-            Commit remoteBranch = Commit.fromFile(branchHash, remoteRepo);
             // Less efficient implementation
-            Set<Commit> ancestors = findAncestors(REPO, Commit.fromFile(headHash));
-            if (!ancestors.contains(remoteBranch)) {
+            Set<String> ancestors = findAncestors(REPO, Commit.fromFile(headHash)).keySet();
+            if (!ancestors.contains(branchHash)) {
                 abort("Please pull down remote changes before pushing.");
             }
         }
@@ -216,7 +215,7 @@ public class Repo {
         String branchHash = repo.getBranch(branchName);
         Commit mergedIn = Commit.fromFile(branchHash, repo);
         // Pull will fetch first, so this can work well
-        Commit ancestor = latestAncestor(curr, mergedIn);
+        Commit ancestor = Commit.fromFile(latestAncestor(curr, mergedIn));
         if (ancestor.equals(mergedIn)) {
             abort("Given branch is an ancestor of the current branch.");
         } else if (ancestor.equals(curr)) {
@@ -296,8 +295,8 @@ public class Repo {
     private static void saveRemoteCommits(FileSystem one, FileSystem another, String hash) {
         // Less efficient, but less code, in fact no need to traverse whole tree
         Commit commit = Commit.fromFile(hash, another);
-        for (Commit ancestor : findAncestors(another, commit)) {
-            if (!one.isCommit(ancestor.getHash())) {
+        for (String ancestor : findAncestors(another, commit).keySet()) {
+            if (!one.isCommit(ancestor)) {
                 cpCommit(one, another, ancestor);
             }
         }
@@ -306,9 +305,10 @@ public class Repo {
     /**
      * Copy a commit and its tracked blobs from one repo to another repo
      */
-    private static void cpCommit(FileSystem one, FileSystem another, Commit commit) {
+    private static void cpCommit(FileSystem one, FileSystem another, String commitHash) {
+        Commit commit = Commit.fromFile(commitHash, another);
         byte[] content = Utils.serialize(commit);
-        one.saveCommit(commit.getHash(), content);
+        one.saveCommit(commitHash, content);
         for (String blobHash : commit.getBlobs().values()) {
             if (!one.isBlob(blobHash)) {
                 one.saveBlob(blobHash, another.getBlob(blobHash));
@@ -361,35 +361,42 @@ public class Repo {
      * Find the latest ancestor for two commits in the local commit DAG
      * Note that after fetch operation, remote branch commits will be recorded in the commit DAG
      */
-    private static Commit latestAncestor(Commit one, Commit other) {
-        TreeSet<Commit> ancestorsOfOne = findAncestors(REPO, one);
-        TreeSet<Commit> ancestorsOfOther = findAncestors(REPO, other);
-        TreeSet<Commit> commonAncestors = new TreeSet<>(ancestorsOfOne);
-        commonAncestors.retainAll(ancestorsOfOther);
-        return commonAncestors.first();
+    private static String latestAncestor(Commit one, Commit other) {
+        Map<String, List<String>> commonAncestors = findAncestors(REPO, one);
+        Map<String, List<String>> ancestorsOfOther = findAncestors(REPO, other);
+        commonAncestors.keySet().retainAll(ancestorsOfOther.keySet());
+        Set<String> removed = new HashSet<>();
+        for (String ancestor : commonAncestors.keySet()) {
+            for (String parent : commonAncestors.get(ancestor)) {
+                if (commonAncestors.containsKey(parent)) {
+                    removed.add(parent);
+                }
+            }
+        }
+        commonAncestors.keySet().removeAll(removed);
+        Iterator<String> iter = commonAncestors.keySet().iterator();
+        return iter.next();
     }
 
     /**
      * Find all the ancestors(include itself) for a commit in a gitlet repo
-     * Return the tree set of its ancestors
+     * Return the Map representation of its ancestors
      */
-    private static TreeSet<Commit> findAncestors(FileSystem repo, Commit commit) {
-        // Smallest item in the set has the newest date
-        // Keep comparator consistent to equals()
-        TreeSet<Commit> ancestors = new TreeSet<>(
-                Comparator.comparing(Commit::getDate, Comparator.reverseOrder())
-                        .thenComparing(Commit::getHash)
-        );
+    private static Map<String, List<String>> findAncestors(FileSystem repo, Commit commit) {
+        Map<String, List<String>> ancestors = new HashMap<>();
         Queue<Commit> queue = new ArrayDeque<>();
         queue.add(commit);
         while (!queue.isEmpty()) {
             commit = queue.poll();
-            ancestors.add(commit);
-            for (String parentHash : commit.getParents()) {
+            String hash = commit.getHash();
+            List<String> parents = commit.getParents();
+            if (ancestors.containsKey(hash)) {
+                continue;
+            }
+            ancestors.put(hash, parents);
+            for (String parentHash : parents) {
                 Commit parent = Commit.fromFile(parentHash, repo);
-                if (!ancestors.contains(parent)) {
-                    queue.add(parent);
-                }
+                queue.add(parent);
             }
         }
         return ancestors;

@@ -123,10 +123,6 @@ public class Commit implements Serializable {
         return message;
     }
 
-    public Date getDate() {
-        return date;
-    }
-
     /**
      * Return a map view of files tracked by the commit
      */
